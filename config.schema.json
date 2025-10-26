@@ -17,29 +17,29 @@
 				"title": "Model Label",
 				"type": "string",
 				"placeholder": "EC5-75-CV",
-				"description": "RainSoft Remind → System Info → Model (ex: \"EC5-75-CV\").",
+				"description": "RainSoft Remind → System Info → Model. Used for HomeKit Accessory Information.",
 				"required": true
 			},
 			"serialNumber": {
 				"title": "Serial Number",
 				"type": "string",
-				"placeholder": "1121113",
-				"description": "RainSoft Remind → System Info → Serial Number (ex: \"1121113\"). Used for HomeKit Accessory Information.",
+				"placeholder": "1234567",
+				"description": "RainSoft Remind → System Info → Serial Number. Used for HomeKit Accessory Information.",
 				"required": true
 			},
 
 			"deviceId": {
 				"title": "Device ID",
 				"type": "string",
-				"placeholder": "136016",
+				"placeholder": "123456",
 				"description": "Numeric ID from the RainSoft API URL (/device/######).",
 				"required": true
 			},
 			"authToken": {
 				"title": "Auth Token",
 				"type": "string",
-				"placeholder": "307ebb0a-....-e1ae002db3f9",
-				"description": "Value of the X-Remind-Auth-Token header captured from the RainSoft Remind app. Keep this secret.",
+				"placeholder": "abcd1234-example-token-5678",
+				"description": "Value of the X-Remind-Auth-Token header captured from the RainSoft Remind app. KEEP THIS SECRET!",
 				"secure": true,
 				"required": true
 			},
