@@ -17,6 +17,31 @@ Or via CLI:
 ```bash
 sudo npm install -g homebridge-rainsoft-remind
 ```
+
+### How to Obtain Your Device ID and Auth Token
+
+> ⚠️ These values come from your **RainSoft Remind** mobile app and are required for the plugin to connect.  
+> You only need to collect them once. Keep them private.
+
+#### Using a Network Proxy (Charles Proxy or similar)
+1. Install **Charles Proxy** (macOS) or **HTTP Toolkit** (Windows/Linux).
+2. Enable HTTPS proxying and connect your phone or tablet to the same Wi-Fi network.
+3. Open the **RainSoft Remind** app and refresh the *System Info* screen.
+4. In Charles, look for a request like:
+   `https://api.rainsoftremind.com/device/123456/status`
+   - The `123456` part of that URL is your **Device ID**.
+5. In that same request, look under **Headers** for:
+   `X-Remind-Auth-Token: abcd1234-example-token-5678`
+   - That long string is your **Auth Token**.
+6. Copy those two values into the Homebridge plugin configuration fields.
+
+### Security Notes
+⚠️ **This plugin is unofficial and not affiliated with RainSoft.**
+
+- Your Auth Token allows access to your RainSoft Remind account data.
+- The token is stored only in your local Homebridge config and is sent only to the official RainSoft Remind API.
+- Do **not** share screenshots of your Homebridge config screen publicly.
+
 ## Configuration
 
 After installing, open the plugin’s Settings page in Homebridge UI.
@@ -31,14 +56,10 @@ After installing, open the plugin’s Settings page in Homebridge UI.
 | **Polling Interval** | How often to refresh (default 300 s)        |
 | **Force Update**     | Request latest readings before each poll    |
 
-⚠️ This plugin is unofficial and not affiliated with RainSoft.
-Your credentials are sent only to the official RainSoft Remind API.
-
 ## Troubleshooting
 
 Run Homebridge in debug mode to see polling logs:
 ```bash
-
 homebridge -D
 ```
 ## License

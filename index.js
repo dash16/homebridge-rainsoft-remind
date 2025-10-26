@@ -145,7 +145,7 @@ class RainsoftRemindAccessory {
 			res.setEncoding("utf8");
 			res.on("data", (chunk) => { raw += chunk; });
 			res.on("end", () => {
-				this.log(`[rainsoft-remind] forceupdate code=${res.statusCode} body=${raw || "<empty>"}`);
+				this.log(`[rainsoft-remind] forceupdate code=${res.statusCode}`);
 				if (cb) cb();
 			});
 		});
