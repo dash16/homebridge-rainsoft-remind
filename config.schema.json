@@ -1,0 +1,89 @@
+{
+	"pluginAlias": "RainsoftRemind",
+	"pluginType": "accessory",
+	"singular": true,
+
+	"schema": {
+		"type": "object",
+		"properties": {
+			"name": {
+				"title": "Accessory Name in Home",
+				"type": "string",
+				"default": "RainSoft EC5",
+				"description": "How it will appear in the Home app (e.g. \"RainSoft EC5\" or \"Water Softener\").",
+				"required": true
+			},
+			"modelLabel": {
+				"title": "Model Label",
+				"type": "string",
+				"placeholder": "EC5-75-CV",
+				"description": "RainSoft Remind → System Info → Model (ex: \"EC5-75-CV\").",
+				"required": true
+			},
+			"serialNumber": {
+				"title": "Serial Number",
+				"type": "string",
+				"placeholder": "1121113",
+				"description": "RainSoft Remind → System Info → Serial Number (ex: \"1121113\"). Used for HomeKit Accessory Information.",
+				"required": true
+			},
+
+			"deviceId": {
+				"title": "Device ID",
+				"type": "string",
+				"placeholder": "136016",
+				"description": "Numeric ID from the RainSoft API URL (/device/######).",
+				"required": true
+			},
+			"authToken": {
+				"title": "Auth Token",
+				"type": "string",
+				"placeholder": "307ebb0a-....-e1ae002db3f9",
+				"description": "Value of the X-Remind-Auth-Token header captured from the RainSoft Remind app. Keep this secret.",
+				"secure": true,
+				"required": true
+			},
+
+			"pollSeconds": {
+				"title": "Polling Interval (seconds)",
+				"type": "integer",
+				"default": 300,
+				"description": "How often to refresh salt level and status. Default 300 (5 min). Lower = more requests."
+			},
+			"forceUpdate": {
+				"title": "Force Update Before Poll",
+				"type": "boolean",
+				"default": true,
+				"description": "Call RainSoft's /forceupdate first to ask the unit for fresh data before reading values."
+			}
+		}
+	},
+
+	"layout": [
+		{
+			"title": "Home Accessory Identity",
+			"type": "section",
+			"items": [
+				"name",
+				"modelLabel",
+				"serialNumber"
+			]
+		},
+		{
+			"title": "RainSoft Cloud Access",
+			"type": "section",
+			"items": [
+				"deviceId",
+				"authToken"
+			]
+		},
+		{
+			"title": "Polling Behavior",
+			"type": "section",
+			"items": [
+				"pollSeconds",
+				"forceUpdate"
+			]
+		}
+	]
+}
