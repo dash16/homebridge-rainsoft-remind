@@ -3,13 +3,8 @@
 // Poll RainSoft Remind API and expose device metrics (salt %, capacity %, status)
 // as HomeKit services via Homebridge.
 //
-// Includes:
-// - AccessoryInformation service
-// - Optional forceUpdate GET before polling
-//
-//
 
-const https = require("https");
+const RainsoftApi = require("./lib/rainsoftApi.js");
 
 let apiRef;
 let hap;
@@ -28,8 +23,7 @@ class RainsoftRemindAccessory {
 	constructor(log, config) {
 		this.log = log;
 
-		// --- pull config first ---
-		// required
+		// user-supplied config (may be partial now)
 		this.email = config.email;
 		this.password = config.password;
 		this.deviceId = config.deviceId;
@@ -46,32 +40,23 @@ class RainsoftRemindAccessory {
 				? config.pollSeconds
 				: 300;
 
-		// forceUpdate needs to respect explicit false, not just truthy/falsy
 		this.forceUpdate =
 			(typeof config.forceUpdate === "boolean")
 				? config.forceUpdate
 				: true;
-
-		// sanity check required fields
-		if (!this.deviceId || !this.authToken) {
-			this.log.error("[rainsoft-remind] Missing deviceId or authToken in config!");
-		}
-
-		// snapshot log AFTER assignments
-		this.log(
-			`[rainsoft-remind] init "${this.name}" Model=${this.modelLabel}, `
-			+ `Serial=${this.serialNumber}, DeviceID=${this.deviceId}, `
-			+ `poll=${this.pollSeconds}s forceUpdate=${this.forceUpdate}`
-		);
 
 		// runtime values from polling
 		this.saltPct = 0;
 		this.capacityRemaining = 0;
 		this.systemStatusName = "Unknown";
 
-		// --- HomeKit services ---
+		// less spammy heartbeat timer
+		this._lastHeartbeat = 0;
 
-		// AccessoryInformation
+		// ### 🧩 API client: central axios-based RainSoft caller
+		this.api = new RainsoftApi(this.log);
+
+		// HomeKit services
 		this.infoService = new hap.Service.AccessoryInformation();
 		this.infoService
 			.setCharacteristic(hap.Characteristic.Manufacturer, "RainSoft")
@@ -79,7 +64,6 @@ class RainsoftRemindAccessory {
 			.setCharacteristic(hap.Characteristic.SerialNumber, this.serialNumber)
 			.setCharacteristic(hap.Characteristic.Name, this.name);
 
-		// BatteryService (salt %)
 		this.batteryService = new hap.Service.BatteryService(this.name + " Salt");
 		this.batteryService
 			.getCharacteristic(hap.Characteristic.BatteryLevel)
@@ -98,7 +82,6 @@ class RainsoftRemindAccessory {
 				cb(null, low);
 			});
 
-		// ContactSensor (system health)
 		this.statusService = new hap.Service.ContactSensor(this.name + " Status");
 		this.statusService
 			.getCharacteristic(hap.Characteristic.ContactSensorState)
@@ -109,15 +92,94 @@ class RainsoftRemindAccessory {
 					: hap.Characteristic.ContactSensorState.CONTACT_DETECTED);
 			});
 
-		// HumiditySensor (capacityRemaining %)
 		this.capacityService = new hap.Service.HumiditySensor(this.name + " Capacity");
 		this.capacityService
 			.getCharacteristic(hap.Characteristic.CurrentRelativeHumidity)
 			.on("get", (cb) => cb(null, this.capacityRemaining));
 
-		// Start polling
-		this._pollNow();
-		this._schedulePoll();
+		// async bootstrap before we actually start polling
+		this._bootstrap().then(() => {
+			// after bootstrap finishes (either success or graceful fallback),
+			// log final config and start polling loop
+
+			if (!this.deviceId || !this.authToken) {
+				// We might still be able to discover token/deviceId on first poll,
+				// so we don't bail completely. We'll warn instead.
+				this.log.warn("[rainsoft-remind] Missing deviceId or authToken at init; will attempt to discover on first poll.");
+			}
+
+			this.log(
+				`[rainsoft-remind] init "${this.name}" Model=${this.modelLabel}, `
+				+ `Serial=${this.serialNumber}, DeviceID=${this.deviceId}, `
+				+ `poll=${this.pollSeconds}s forceUpdate=${this.forceUpdate}`
+			);
+
+			this._pollNow();
+			this._schedulePoll();
+		});
+	}
+
+	//
+	// ### 🧩 _bootstrap: if deviceId/authToken aren't provided,
+	// try to log in with email/password and discover them.
+	//
+	async _bootstrap() {
+		// if we already have both, nothing to do
+		if (this.deviceId && this.authToken) {
+			return;
+		}
+
+		// if we don't have creds, we can't auto-discover
+		if (!this.email || !this.password) {
+			this.log.warn("[rainsoft-remind] No authToken/deviceId AND no email/password provided. You must fill config manually.");
+			return;
+		}
+
+		this.log.info("[rainsoft-remind] Attempting automatic RainSoft login...");
+
+		// step 1: login -> authentication_token
+		const token = await this.api.login(this.email, this.password);
+		if (!token) {
+			this.log.warn("[rainsoft-remind] Login failed. Cannot auto-discover device.");
+			return;
+		}
+
+		// step 2: /locations -> pick first device
+		const locations = await this.api.getLocations(token);
+		if (!locations || !locations.locationListData || !locations.locationListData[0]) {
+			this.log.warn("[rainsoft-remind] /locations returned nothing usable.");
+			return;
+		}
+
+		const loc0 = locations.locationListData[0];
+		const dev0 = loc0.devices && loc0.devices[0];
+		if (!dev0) {
+			this.log.warn("[rainsoft-remind] /locations had no devices.");
+			return;
+		}
+
+		// hydrate our runtime with discovered values
+		this.authToken = this.authToken || token;
+		this.deviceId = this.deviceId || String(dev0.id);
+
+		// Opportunistically improve modelLabel / serialNumber if user left defaults
+		if ((!this.modelLabel || this.modelLabel === "EC5-75-CV") && dev0.model) {
+			const baseModel = (dev0.model || "").toString().trim();
+			const sizePart = (dev0.unitSizeName || "").toString().trim();
+			let resinPart = (dev0.resinTypeName || "").toString().trim();
+			if (resinPart.toUpperCase().startsWith("TYPE")) {
+				resinPart = resinPart.substring(4).trim();
+			}
+			const prettyParts = [baseModel, sizePart, resinPart].filter(Boolean);
+			const prettyModel = prettyParts.join("-");
+			this.modelLabel = prettyModel || baseModel || this.modelLabel;
+		}
+
+		if ((!this.serialNumber || this.serialNumber === "Unknown") && dev0.serialNumber) {
+			this.serialNumber = String(dev0.serialNumber);
+		}
+
+		this.log.info(`[rainsoft-remind] Discovered DeviceID=${this.deviceId}, Serial=${this.serialNumber}, Model=${this.modelLabel}`);
 	}
 
 	_schedulePoll() {
@@ -126,142 +188,71 @@ class RainsoftRemindAccessory {
 		}, this.pollSeconds * 1000);
 	}
 
-	_forceUpdateNow(cb) {
-		if (!this.forceUpdate) {
-			if (cb) cb();
+	//
+	// ### 🧩 _pollNow: NEW VERSION
+	// Ask RainSoftApi for a fresh snapshot, then update HomeKit.
+	// Also handles quiet logging / heartbeat.
+	//
+	async _pollNow() {
+		// Try to fetch a new snapshot from the cloud
+		const snap = await this.api.fetchDeviceSnapshot(this);
+		if (!snap) {
+			this.log.warn("[rainsoft-remind] Poll failed (no snapshot).");
 			return;
 		}
 
-		const options = {
-			method: "GET",
-			hostname: "remind.rainsoft.com",
-			path: "/api/remindapp/v2/forceupdate",
-			headers: {
-				"Accept": "application/json",
-				"X-Remind-Auth-Token": this.authToken
-			}
-		};
+		// update local runtime state
+		this.saltPct = snap.saltPct;
+		this.capacityRemaining = snap.capacityRemaining;
+		this.systemStatusName = snap.systemStatusName;
 
-		let raw = "";
-		const req = https.request(options, (res) => {
-			res.setEncoding("utf8");
-			res.on("data", (chunk) => { raw += chunk; });
-			res.on("end", () => {
-				this.log(`[rainsoft-remind] forceupdate code=${res.statusCode}`);
-				if (cb) cb();
-			});
-		});
-
-		req.on("error", (e) => {
-			this.log("[rainsoft-remind] forceupdate error:", e);
-			if (cb) cb();
-		});
-
-		req.end();
-	}
-
-	_pollNow() {
-		if (!this.deviceId || !this.authToken) {
-			return;
+		// keep labels nice if cloud knows better names
+		if (snap.prettyModel && snap.prettyModel !== this.modelLabel) {
+			this.modelLabel = snap.prettyModel;
+			this.infoService.setCharacteristic(hap.Characteristic.Model, this.modelLabel);
 		}
 
-		this._forceUpdateNow(() => {
-			const options = {
-				method: "GET",
-				hostname: "remind.rainsoft.com",
-				path: `/api/remindapp/v2/device/${this.deviceId}`,
-				headers: {
-					"Accept": "application/json",
-					"X-Remind-Auth-Token": this.authToken
-				}
-			};
+		if (snap.serialNumber && snap.serialNumber !== this.serialNumber) {
+			this.serialNumber = snap.serialNumber;
+			this.infoService.setCharacteristic(hap.Characteristic.SerialNumber, this.serialNumber);
+		}
 
-			let raw = "";
-			const req = https.request(options, (res) => {
-				res.setEncoding("utf8");
-				res.on("data", (chunk) => { raw += chunk; });
-				res.on("end", () => {
-					try {
-						const data = JSON.parse(raw);
+		if (snap.displayName && snap.displayName !== this.name) {
+			this.name = snap.displayName;
+			this.infoService.setCharacteristic(hap.Characteristic.Name, this.name);
+			// Note: renaming services here won't rename them in Home app UI once paired,
+			// but we can keep internal state tidy.
+		}
 
-						//
-						// Build the human-friendly model string
-						// e.g. EC5-75-CV from:
-						//   data.model         = "EC5"
-						//   data.unitSizeName  = "75"
-						//   data.resinTypeName = "TYPE CV"
-						//
-						const baseModel = (data.model || "RainSoft").toString().trim();
-						const sizePart = (data.unitSizeName || "").toString().trim(); // "75"
-						let resinPart = (data.resinTypeName || "").toString().trim();  // "TYPE CV"
-						if (resinPart.toUpperCase().startsWith("TYPE")) {
-							resinPart = resinPart.substring(4).trim(); // "CV"
-						}
-						const prettyModelParts = [baseModel, sizePart, resinPart].filter(Boolean);
-						const prettyModel = prettyModelParts.join("-");
+		// push values into HomeKit characteristics
+		this.batteryService
+			.getCharacteristic(hap.Characteristic.BatteryLevel)
+			.updateValue(this.saltPct);
 
-						// Try to get a "real" serial number (not just deviceId)
-						// We haven't located this yet; for now fall back to deviceId.
-						const serialGuess = this.deviceId;
+		const low = (this.saltPct < 20)
+			? hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
+			: hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
+		this.batteryService
+			.getCharacteristic(hap.Characteristic.StatusLowBattery)
+			.updateValue(low);
 
-						const saltLbs = data.saltLbs;
-						const maxSalt = data.maxSalt || 250;
-						const capRemain = data.capacityRemaining;
-						const statusName = data.systemStatusName || "Unknown";
-						const dispName = data.name || this.name;
+		const needsAttention = (this.systemStatusName !== "Normal")
+			? hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
+			: hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
+		this.statusService
+			.getCharacteristic(hap.Characteristic.ContactSensorState)
+			.updateValue(needsAttention);
 
-						// compute % salt remaining
-						let saltPct = 0;
-						if (typeof saltLbs === "number" && typeof maxSalt === "number" && maxSalt > 0) {
-							saltPct = (saltLbs / maxSalt) * 100.0;
-							if (saltPct < 0) saltPct = 0;
-							if (saltPct > 100) saltPct = 100;
-						}
+		this.capacityService
+			.getCharacteristic(hap.Characteristic.CurrentRelativeHumidity)
+			.updateValue(this.capacityRemaining);
 
-						// update snapshot
-						this.saltPct = saltPct;
-						this.capacityRemaining = (typeof capRemain === "number") ? capRemain : 0;
-						this.systemStatusName = statusName;
-						this.modelReported = prettyModel || baseModel;
-						this.deviceDisplayName = dispName;
-						
-						// Update Salt "Battery"
-						this.batteryService
-							.getCharacteristic(hap.Characteristic.BatteryLevel)
-							.updateValue(this.saltPct);
-
-						const low = (this.saltPct < 20)
-							? hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
-							: hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
-						this.batteryService
-							.getCharacteristic(hap.Characteristic.StatusLowBattery)
-							.updateValue(low);
-
-						// Update Status contact sensor
-						const needsAttention = (this.systemStatusName !== "Normal")
-							? hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
-							: hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
-						this.statusService
-							.getCharacteristic(hap.Characteristic.ContactSensorState)
-							.updateValue(needsAttention);
-
-						// Update Capacity humidity
-						this.capacityService
-							.getCharacteristic(hap.Characteristic.CurrentRelativeHumidity)
-							.updateValue(this.capacityRemaining);
-
-					} catch (e) {
-						this.log("[rainsoft-remind] parse error:", e, raw);
-					}
-				});
-			});
-
-			req.on("error", (e) => {
-				this.log("[rainsoft-remind] request error:", e);
-			});
-
-			req.end();
-		});
+		// quiet logging: only heartbeat once per hour-ish
+		const now = Date.now();
+		if (now - this._lastHeartbeat > 3600000) { // 1 hour
+			this.log(`[rainsoft-remind] heartbeat OK saltPct=${this.saltPct.toFixed(1)} cap=${this.capacityRemaining} status=${this.systemStatusName}`);
+			this._lastHeartbeat = now;
+		}
 	}
 
 	getServices() {

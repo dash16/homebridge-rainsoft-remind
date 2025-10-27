@@ -50,13 +50,83 @@ After installing, open the plugin’s Settings page in Homebridge UI.
 | -------------------- | ------------------------------------------- |
 | **Name**             | How it appears in Home                      |
 | **Model Label**      | From RainSoft Remind → System Info → Model  |
-| **Serial Number**    | From RainSoft Remind → System Info → Serial |
 | **Device ID**        | Numeric ID from the RainSoft API URL        |
+| **Serial Number**    | From RainSoft Remind → System Info → Serial |
+| **Email**    		   | Username used in RainSoft Remind to log in  |
+| **Password**    	   | Password used in RainSoft Remind to log in  |
 | **Auth Token**       | Value of `X-Remind-Auth-Token` header       |
 | **Polling Interval** | How often to refresh (default 300 s)        |
 | **Force Update**     | Request latest readings before each poll    |
 
-## Troubleshooting
+You now have two ways to configure the plugin:
+
+### Option A: Automatic (Recommended)
+
+Let the plugin talk to your RainSoft Remind account and pull device info for you.
+
+1. In Homebridge UI:
+
+   * Go to **Plugins → homebridge-rainsoft-remind → Settings**
+   * Enter:
+
+     * RainSoft Email
+     * RainSoft Password
+
+2. Save and restart Homebridge.
+
+What this does:
+
+* The plugin will log in to the RainSoft Remind API using axios.
+* It will request your device / location info (model, serial, etc.).
+* Those details are then used to expose your softener to HomeKit.
+
+Why this is nice:
+
+* No packet sniffing.
+* No manual serial scraping.
+
+Security note:
+
+* Your RainSoft email + password are stored in `config.json` the same way other Homebridge plugins store credentials.
+* We do NOT send your credentials anywhere except directly to the RainSoft Remind API.
+* We do NOT expose your credentials to HomeKit.
+
+### Option B: Manual (No credentials stored)
+
+If you don't want to save your RainSoft login:
+
+1. In the Remind mobile app, note:
+
+   * Device serial number
+   * Model / product name
+   * (Any other IDs the plugin asks for in the UI)
+
+2. In Homebridge UI, leave the email/password blank and instead fill in the device info fields manually.
+
+3. Save and restart Homebridge.
+
+This behaves like v0.1.x.
+
+---
+
+### What gets created in HomeKit?
+
+Right now we expose the softener as a sensor-style accessory so you can view status in Home and in automations. More rich characteristics (salt level alerts, flow info, etc.) will land in future versions.
+
+---
+
+### Troubleshooting / FAQ
+
+**Q: My token seems to expire and I get "Not authorized."**
+A: That's expected. Tokens from the RainSoft API aren't permanent. v0.2.0 will attempt to log in with your email/password again to get a fresh token on restart. Seamless background refresh is planned for a future version.
+
+**Q: I don't see any accessories after I restart.**
+A: Double-check either:
+
+* Your RainSoft login is correct, OR
+* Your manual model/serial info is filled in.
+
+Then restart Homebridge and wait for the accessory to show up.
 
 Run Homebridge in debug mode to see polling logs:
 ```bash

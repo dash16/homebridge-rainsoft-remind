@@ -1,3 +1,7 @@
+## 0.2.0 - Email login
+- Support for logging in using email address and password to obtain a token automatically
+- Cleaned up schema for config
+
 ## 0.1.3 - Dependancies
 **Release Date:** 2025-10-26
 - Adding axios as a dependency in order to support new library for username/password login to Rainsoft cloud
