@@ -1,6 +1,18 @@
-# homebridge-rainsoft-remind
+<p align="center">
+  <img src="./homebridge-ui/public/icon.png" width="180" height="180" alt="homebridge-rainsoft-remind icon">
+</p>
 
-> 🌧️ Homebridge plugin for RainSoft EC5 water softeners using data from the RainSoft Remind cloud.
+<p align="center">
+  <a href="https://www.npmjs.com/package/homebridge-rainsoft-remind"><img src="https://img.shields.io/npm/v/homebridge-rainsoft-remind.svg?color=cb3837&logo=npm" alt="npm version"></a>
+  <a href="https://github.com/dash16/homebridge-rainsoft-remind/stargazers"><img src="https://img.shields.io/github/stars/dash16/homebridge-rainsoft-remind.svg?style=flat&color=ffcc00" alt="GitHub stars"></a>
+  <a href="https://github.com/dash16/homebridge-rainsoft-remind/issues"><img src="https://img.shields.io/github/issues/dash16/homebridge-rainsoft-remind.svg?color=yellow" alt="GitHub issues"></a>
+  <a href="https://github.com/dash16/homebridge-rainsoft-remind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+</p>
+
+<h1 align="center">homebridge-rainsoft-remind</h1>
+<p align="center"> 🌧️ Homebridge plugin for RainSoft EC5 water softeners using data from the RainSoft Remind cloud.</p>
+
+
 
 ## Features
 - Reports **salt level** as a Battery Level sensor  

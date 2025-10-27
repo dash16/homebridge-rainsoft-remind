@@ -1,3 +1,7 @@
+## 0.2.1 - Iconic
+- Added project icon
+- Added badges on Readme
+
 ## 0.2.0 - Email login
 - Support for logging in using email address and password to obtain a token automatically
 - Cleaned up schema for config
