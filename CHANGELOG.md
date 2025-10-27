@@ -1,3 +1,7 @@
+## 0.2.2 - cleanup
+- updated package.json to coerce homebridge into actually using my icon
+- added npm install scripts
+
 ## 0.2.1 - Iconic
 - Added project icon
 - Added badges on Readme

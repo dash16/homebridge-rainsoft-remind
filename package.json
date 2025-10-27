@@ -1,12 +1,13 @@
 {
 	"name": "homebridge-rainsoft-remind",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Expose RainSoft Remind device data (e.g. EC5 water softener salt level, capacity, status) to Apple Home via Homebridge.",
 	"main": "index.js",
 	"homebridge": {
 		"platforms": [
 			"RainSoftRemind"
-		]
+		],
+		"ui": true
 	},
 	"keywords": [
 		"homebridge-plugin",
@@ -34,6 +35,11 @@
 	"dependencies": {
 		"axios": "^1.12.2"
 	},
+	"scripts": {
+		"preinstall": "echo '[RainSoft] Preparing install…'",
+		"install": "echo '[RainSoft] Installing homebridge-rainsoft-remind…'",
+		"postinstall": "echo '[RainSoft] Install complete. If this is your first time setting up, open the plugin settings in Homebridge UI to add your RainSoft credentials and device info.'"
+		},
 	"license": "MIT",
 	"author": "Dustin Newell"
 }
