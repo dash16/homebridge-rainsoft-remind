@@ -30,6 +30,8 @@ class RainsoftRemindAccessory {
 
 		// --- pull config first ---
 		// required
+		this.email = config.email;
+		this.password = config.password;
 		this.deviceId = config.deviceId;
 		this.authToken = config.authToken;
 

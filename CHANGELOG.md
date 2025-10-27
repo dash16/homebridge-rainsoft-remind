@@ -1,3 +1,7 @@
+## 0.1.3 - Dependancies
+**Release Date:** 2025-10-26
+- Adding axios as a dependency in order to support new library for username/password login to Rainsoft cloud
+
 ## 0.1.2 - Bug fixes
 **Release Date:** 2025-10-26
 - Minor code cleanup
