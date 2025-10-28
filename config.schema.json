@@ -1,6 +1,6 @@
 {
-	"pluginAlias": "RainsoftRemind",
-	"pluginType": "accessory",
+	"pluginAlias": "RainSoftRemind",
+	"pluginType": "platform",
 	"singular": true,
 
 	"schema": {
@@ -10,98 +10,121 @@
 				"title": "Accessory Name in Home",
 				"type": "string",
 				"default": "RainSoft EC5",
-				"description": "How it will appear in the Home app (e.g. \"RainSoft EC5\" or \"Water Softener\").",
+				"description": "How this will appear in the Home app (e.g. \"RainSoft EC5\" or \"Water Softener\").",
 				"required": true
 			},
-			"modelLabel": {
-				"title": "Model Label",
-				"type": "string",
-				"placeholder": "EC5-75-CV",
-				"description": "RainSoft Remind → System Info → Model. Used for HomeKit Accessory Information.",
-				"required": true
-			},
-			"serialNumber": {
-				"title": "Serial Number",
-				"type": "string",
-				"placeholder": "1234567",
-				"description": "RainSoft Remind → System Info → Serial Number. Used for HomeKit Accessory Information.",
-				"required": true
-			},
+
 			"email": {
-					"title": "RainSoft Account Email (optional)",
-					"type": "string",
-					"placeholder": "name@example.com",
-					"description": "Used for automatic login. Leave blank if you prefer to capture token manually."
-			},
-			"password": {
-					"title": "RainSoft Account Password (optional)",
-					"type": "string",
-					"format": "password",
-					"description": "Used with Email to log in and auto-populate authToken + deviceId.",
-					"secure": true
-			},
-			"deviceId": {
-				"title": "Device ID",
+				"title": "RainSoft Account Email",
 				"type": "string",
-				"placeholder": "123456",
-				"description": "Numeric ID from the RainSoft API URL (/device/######).",
+				"placeholder": "name@example.com",
+				"description": "Recommended. Used to sign in to RainSoft Remind and automatically discover your system. You usually only need this and your password.",
 				"required": false
 			},
-			"authToken": {
-				"title": "Auth Token",
+
+			"password": {
+				"title": "RainSoft Account Password",
 				"type": "string",
-				"placeholder": "abcd1234-example-token-5678",
-				"description": "Value of the X-Remind-Auth-Token header captured from the RainSoft Remind app. KEEP THIS SECRET!",
+				"format": "password",
+				"description": "Recommended. Stored locally in Homebridge and used to authenticate with RainSoft Remind. This lets the plugin auto-fetch your device details and live status.",
 				"secure": true,
 				"required": false
 			},
+
 			"pollSeconds": {
 				"title": "Polling Interval (seconds)",
 				"type": "integer",
-				"default": 300,
-				"description": "How often to refresh salt level and status. Default 300 (5 min). Lower = more requests."
+				"default": 1800,
+				"description": "How often to refresh salt level and system status. Higher = fewer API calls. Default 1800 (30 min).",
+				"required": false
 			},
+
 			"forceUpdate": {
-				"title": "Force Update Before Poll",
+				"title": "Force Unit Refresh Before Poll",
 				"type": "boolean",
 				"default": true,
-				"description": "Call RainSoft's /forceupdate first to ask the unit for fresh data before reading values."
+				"description": "If enabled, the plugin will ask your hardware to push fresh data to the cloud before reading it.",
+				"required": false
+			},
+
+			"modelLabel": {
+				"title": "Detected Model",
+				"type": "string",
+				"readOnly": true,
+				"description": "Read-only. Populated automatically from RainSoft (example: EC5-75-CV).",
+				"required": false
+			},
+
+			"serialNumber": {
+				"title": "Detected Serial Number",
+				"type": "string",
+				"readOnly": true,
+				"description": "Read-only. Populated automatically from RainSoft.",
+				"required": false
+			},
+
+			"deviceId": {
+				"title": "Device ID (manual override)",
+				"type": "string",
+				"placeholder": "123456",
+				"description": "Advanced. Only fill this in if you are NOT using email+password. This is the numeric ID RainSoft uses for your softener.",
+				"required": false
+			},
+
+			"authToken": {
+				"title": "Auth Token (manual override)",
+				"type": "string",
+				"placeholder": "abcd1234-example-token-5678",
+				"description": "Advanced. X-Remind-Auth-Token from RainSoft Remind API calls. Only needed if you are not using email+password. KEEP THIS SECRET.",
+				"secure": true,
+				"required": false
 			}
 		}
 	},
 
 	"layout": [
 		{
-			"title": "Home Accessory Identity",
+			"title": "Home Accessory",
 			"type": "section",
 			"items": [
-				"name",
-				"modelLabel",
-				"deviceId",
-				"serialNumber"
+				"name"
 			]
 		},
 		{
-				"title": "Automatic Login (Optional)",
-				"type": "section",
-				"items": [
-					"email",
-					"password"
-				]
-			},
-			{
-				"title": "Manual Cloud Access (Optional)",
-				"type": "section",
-				"items": [
-					"authToken"
-				]
-			},
+			"title": "Recommended Setup",
+			"description": "Sign in with your RainSoft Remind account. The plugin will authenticate, discover your EC5 automatically, and keep HomeKit updated. This is the normal / supported setup.",
+			"type": "section",
+			"items": [
+				"email",
+				"password"
+			]
+		},
 		{
 			"title": "Polling Behavior",
 			"type": "section",
 			"items": [
 				"pollSeconds",
 				"forceUpdate"
+			]
+		},
+		{
+			"title": "Discovered Device Info",
+			"description": "These values come back from RainSoft after a successful login. They're shown here so you can confirm we matched the right system.",
+			"type": "section",
+			"expanded": false,
+			"items": [
+				"modelLabel",
+				"serialNumber"
+			]
+		},
+		{
+			"title": "Power Users / Manual Setup (Not Recommended)",
+			"description": "Only use this if you don't want to store your RainSoft email+password here. You will have to capture a valid X-Remind-Auth-Token and the numeric deviceId yourself. Most users should leave this blank.",
+			"type": "section",
+			"expanded": false,
+			"items": [
+				"deviceId",
+				"authToken"
 			]
 		}
 	]

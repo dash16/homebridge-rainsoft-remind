@@ -38,11 +38,16 @@ class RainsoftRemindAccessory {
 		this.pollSeconds =
 			(typeof config.pollSeconds === "number" && config.pollSeconds > 0)
 				? config.pollSeconds
-				: 300;
+				: 1800;
 
 		this.forceUpdate =
 			(typeof config.forceUpdate === "boolean")
 				? config.forceUpdate
+				: true;
+		
+		this.refreshOnStartup =
+			(typeof config.refreshOnStartup === "boolean")
+				? config.refreshOnStartup
 				: true;
 
 		// runtime values from polling
@@ -114,146 +119,131 @@ class RainsoftRemindAccessory {
 				+ `poll=${this.pollSeconds}s forceUpdate=${this.forceUpdate}`
 			);
 
-			this._pollNow();
+			this._pollNow({ force: this.refreshOnStartup });
 			this._schedulePoll();
 		});
 	}
 
 	//
-	// ### 🧩 _bootstrap: if deviceId/authToken aren't provided,
-	// try to log in with email/password and discover them.
+	// ### 🧩 _bootstrap: first-run setup / self-heal
+	// If deviceId/authToken aren't provided in config, try to discover them with email/password.
 	//
 	async _bootstrap() {
-		// if we already have both, nothing to do
+		// If we already have both, we're done.
 		if (this.deviceId && this.authToken) {
 			return;
 		}
-
-		// if we don't have creds, we can't auto-discover
+	
+		// If we don't have creds, we can't self-discover.
 		if (!this.email || !this.password) {
 			this.log.warn("[rainsoft-remind] No authToken/deviceId AND no email/password provided. You must fill config manually.");
 			return;
 		}
-
-		this.log.info("[rainsoft-remind] Attempting automatic RainSoft login...");
-
-		// step 1: login -> authentication_token
-		const token = await this.api.login(this.email, this.password);
-		if (!token) {
-			this.log.warn("[rainsoft-remind] Login failed. Cannot auto-discover device.");
+	
+		this.log.info("[rainsoft-remind] Attempting automatic RainSoft discovery...");
+	
+		const discovered = await this.api.discoverAccount(this.email, this.password);
+		if (!discovered) {
+			this.log.warn("[rainsoft-remind] Discovery failed. Cannot auto-populate device info.");
 			return;
 		}
-
-		// step 2: /locations -> pick first device
-		const locations = await this.api.getLocations(token);
-		if (!locations || !locations.locationListData || !locations.locationListData[0]) {
-			this.log.warn("[rainsoft-remind] /locations returned nothing usable.");
-			return;
+	
+		// Hydrate runtime/accessory state from discovery result
+		this.authToken = this.authToken || discovered.authToken;
+		this.deviceId = this.deviceId || discovered.deviceId;
+	
+		// Improve labels if user left defaults
+		if ((!this.modelLabel || this.modelLabel === "EC5-75-CV") && discovered.prettyModel) {
+			this.modelLabel = discovered.prettyModel;
 		}
-
-		const loc0 = locations.locationListData[0];
-		const dev0 = loc0.devices && loc0.devices[0];
-		if (!dev0) {
-			this.log.warn("[rainsoft-remind] /locations had no devices.");
-			return;
+		if ((!this.serialNumber || this.serialNumber === "Unknown") && discovered.serialNumber) {
+			this.serialNumber = discovered.serialNumber;
 		}
-
-		// hydrate our runtime with discovered values
-		this.authToken = this.authToken || token;
-		this.deviceId = this.deviceId || String(dev0.id);
-
-		// Opportunistically improve modelLabel / serialNumber if user left defaults
-		if ((!this.modelLabel || this.modelLabel === "EC5-75-CV") && dev0.model) {
-			const baseModel = (dev0.model || "").toString().trim();
-			const sizePart = (dev0.unitSizeName || "").toString().trim();
-			let resinPart = (dev0.resinTypeName || "").toString().trim();
-			if (resinPart.toUpperCase().startsWith("TYPE")) {
-				resinPart = resinPart.substring(4).trim();
-			}
-			const prettyParts = [baseModel, sizePart, resinPart].filter(Boolean);
-			const prettyModel = prettyParts.join("-");
-			this.modelLabel = prettyModel || baseModel || this.modelLabel;
+		if (this.name === "RainSoft EC5" && discovered.deviceName) {
+			this.name = discovered.deviceName;
 		}
-
-		if ((!this.serialNumber || this.serialNumber === "Unknown") && dev0.serialNumber) {
-			this.serialNumber = String(dev0.serialNumber);
-		}
-
+	
+		// Push updated identity info into the AccessoryInformation service
+		this.infoService
+			.setCharacteristic(hap.Characteristic.Model, this.modelLabel)
+			.setCharacteristic(hap.Characteristic.SerialNumber, this.serialNumber)
+			.setCharacteristic(hap.Characteristic.Name, this.name);
+	
 		this.log.info(`[rainsoft-remind] Discovered DeviceID=${this.deviceId}, Serial=${this.serialNumber}, Model=${this.modelLabel}`);
 	}
 
 	_schedulePoll() {
 		setInterval(() => {
-			this._pollNow();
+			this._pollNow({ force: false });
 		}, this.pollSeconds * 1000);
 	}
 
+
 	//
-	// ### 🧩 _pollNow: NEW VERSION
-	// Ask RainSoftApi for a fresh snapshot, then update HomeKit.
+	// ### 🧩 _pollNow: ask RainsoftApi for snapshot, maybe forcing refresh
 	// Also handles quiet logging / heartbeat.
 	//
-	async _pollNow() {
-		// Try to fetch a new snapshot from the cloud
-		const snap = await this.api.fetchDeviceSnapshot(this);
+	async _pollNow(opts = { force: false }) {
+		const snap = await this.api.fetchDeviceSnapshot(this, opts);
 		if (!snap) {
 			this.log.warn("[rainsoft-remind] Poll failed (no snapshot).");
 			return;
 		}
-
+	
 		// update local runtime state
 		this.saltPct = snap.saltPct;
 		this.capacityRemaining = snap.capacityRemaining;
 		this.systemStatusName = snap.systemStatusName;
-
+	
 		// keep labels nice if cloud knows better names
 		if (snap.prettyModel && snap.prettyModel !== this.modelLabel) {
 			this.modelLabel = snap.prettyModel;
 			this.infoService.setCharacteristic(hap.Characteristic.Model, this.modelLabel);
 		}
-
+	
 		if (snap.serialNumber && snap.serialNumber !== this.serialNumber) {
 			this.serialNumber = snap.serialNumber;
 			this.infoService.setCharacteristic(hap.Characteristic.SerialNumber, this.serialNumber);
 		}
-
+	
 		if (snap.displayName && snap.displayName !== this.name) {
 			this.name = snap.displayName;
 			this.infoService.setCharacteristic(hap.Characteristic.Name, this.name);
-			// Note: renaming services here won't rename them in Home app UI once paired,
-			// but we can keep internal state tidy.
 		}
-
+	
 		// push values into HomeKit characteristics
 		this.batteryService
 			.getCharacteristic(hap.Characteristic.BatteryLevel)
 			.updateValue(this.saltPct);
-
+	
 		const low = (this.saltPct < 20)
 			? hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW
 			: hap.Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL;
 		this.batteryService
 			.getCharacteristic(hap.Characteristic.StatusLowBattery)
 			.updateValue(low);
-
+	
 		const needsAttention = (this.systemStatusName !== "Normal")
 			? hap.Characteristic.ContactSensorState.CONTACT_NOT_DETECTED
 			: hap.Characteristic.ContactSensorState.CONTACT_DETECTED;
 		this.statusService
 			.getCharacteristic(hap.Characteristic.ContactSensorState)
 			.updateValue(needsAttention);
-
+	
 		this.capacityService
 			.getCharacteristic(hap.Characteristic.CurrentRelativeHumidity)
 			.updateValue(this.capacityRemaining);
-
+	
 		// quiet logging: only heartbeat once per hour-ish
 		const now = Date.now();
 		if (now - this._lastHeartbeat > 3600000) { // 1 hour
-			this.log(`[rainsoft-remind] heartbeat OK saltPct=${this.saltPct.toFixed(1)} cap=${this.capacityRemaining} status=${this.systemStatusName}`);
+			this.log(
+				`[rainsoft-remind] heartbeat OK saltPct=${this.saltPct.toFixed(1)} cap=${this.capacityRemaining} status=${this.systemStatusName}`
+			);
 			this._lastHeartbeat = now;
 		}
 	}
+
 
 	getServices() {
 		return [

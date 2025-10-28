@@ -10,29 +10,34 @@
 </p>
 
 <h1 align="center">homebridge-rainsoft-remind</h1>
-<p align="center"> 🌧️ Homebridge plugin for RainSoft EC5 water softeners using data from the RainSoft Remind cloud.</p>
-
-
+<p align="center"> 🌧️ A Homebridge plugin for monitoring and controlling your **RainSoft EC5 water softener** directly from HomeKit — no reverse engineering, no manual token grabbing.</p>
 
 ## Features
-- Reports **salt level** as a Battery Level sensor  
-- Reports **system status** (normal / needs attention) as a Contact Sensor  
-- Reports **remaining capacity** as a Humidity Sensor  
+- Automatic login to RainSoft Remind cloud
+- Auto-discovery of your softener system
+- HomeKit integration for easy monitoring
+	- Reports **salt level** as a Battery Level sensor  
+	- Reports **system status** (normal / needs attention) as a Contact Sensor  
+	- Reports **remaining capacity until regeneration** as a Humidity Sensor  
 - Configurable polling interval and “force update” option
 
 ## Installation
-1. In Homebridge UI, go to **Plugins → Search**  
-2. Search for **homebridge-rainsoft-remind**  
-3. Click **Install**
+1. **Install via Homebridge UI:**
+   - Search for `homebridge-rainsoft-remind` in the Homebridge Plugin Library.
+   - Click **Install**.
 
-Or via CLI:
+2. **Or install manually:**
+   
 ```bash
 sudo npm install -g homebridge-rainsoft-remind
 ```
+## 🧠 How It Works
+
+The plugin securely authenticates to the RainSoft Remind API, discovers your device, and exposes its key metrics to HomeKit. It refreshes these metrics automatically on a schedule you control.
 
 ### How to Obtain Your Device ID and Auth Token
 
-> ⚠️ These values come from your **RainSoft Remind** mobile app and are required for the plugin to connect.  
+> ⚠️ Some values come from your **RainSoft Remind** mobile app but are not required for the plugin to connect.  This is optional if you don't feel comfortable storing your username and password in the config files.
 > You only need to collect them once. Keep them private.
 
 #### Using a Network Proxy (Charles Proxy or similar)
@@ -62,10 +67,10 @@ After installing, open the plugin’s Settings page in Homebridge UI.
 | -------------------- | ------------------------------------------- |
 | **Name**             | How it appears in Home                      |
 | **Model Label**      | From RainSoft Remind → System Info → Model  |
-| **Device ID**        | Numeric ID from the RainSoft API URL        |
-| **Serial Number**    | From RainSoft Remind → System Info → Serial |
 | **Email**    		   | Username used in RainSoft Remind to log in  |
 | **Password**    	   | Password used in RainSoft Remind to log in  |
+| **Serial Number**    | From RainSoft Remind → System Info → Serial |
+| **Device ID**        | Numeric ID from the RainSoft API URL        |
 | **Auth Token**       | Value of `X-Remind-Auth-Token` header       |
 | **Polling Interval** | How often to refresh (default 300 s)        |
 | **Force Update**     | Request latest readings before each poll    |
@@ -95,7 +100,7 @@ What this does:
 Why this is nice:
 
 * No packet sniffing.
-* No manual serial scraping.
+* No manual deviceID/Auth Token scraping.
 
 Security note:
 
@@ -110,12 +115,13 @@ If you don't want to save your RainSoft login:
 1. In the Remind mobile app, note:
 
    * Device serial number
-   * Model / product name
-   * (Any other IDs the plugin asks for in the UI)
+   * Model number
 
 2. In Homebridge UI, leave the email/password blank and instead fill in the device info fields manually.
 
-3. Save and restart Homebridge.
+3. Input Auth Token and Device ID obtained from network proxy.
+
+4. Save and restart Homebridge.
 
 This behaves like v0.1.x.
 
@@ -129,21 +135,23 @@ Right now we expose the softener as a sensor-style accessory so you can view sta
 
 ### Troubleshooting / FAQ
 
-**Q: My token seems to expire and I get "Not authorized."**
-A: That's expected. Tokens from the RainSoft API aren't permanent. v0.2.0 will attempt to log in with your email/password again to get a fresh token on restart. Seamless background refresh is planned for a future version.
+🧰 Troubleshooting
 
-**Q: I don't see any accessories after I restart.**
-A: Double-check either:
-
-* Your RainSoft login is correct, OR
-* Your manual model/serial info is filled in.
-
-Then restart Homebridge and wait for the accessory to show up.
+* “Authentication failed” → Verify your RainSoft Remind username/password by logging in at remind.rainsoft.com
+* No device found → Ensure your EC5 controller is connected to Wi-Fi and visible in the Remind mobile app.
+* API timeout → Increase the pollSeconds value to reduce request frequency.
 
 Run Homebridge in debug mode to see polling logs:
 ```bash
 homebridge -D
 ```
+
+## 📦 Version History
+
+* v0.3.0 “Autodiscovery” – Full automatic login and device discovery (no Charles Proxy needed)
+* v0.2.x – Manual device ID & token workflow
+* v0.1.x – Initial proof-of-concept releases
+
 ## License
 
 MIT © 2025 Dustin Newell
