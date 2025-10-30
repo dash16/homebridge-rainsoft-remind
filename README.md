@@ -10,7 +10,7 @@
 </p>
 
 <h1 align="center">homebridge-rainsoft-remind</h1>
-<p align="center"> 🌧️ A Homebridge plugin for monitoring and controlling your **RainSoft EC5 water softener** directly from HomeKit — no reverse engineering, no manual token grabbing.</p>
+<p align="center"> 🌧️ A Homebridge plugin for monitoring your RainSoft system in HomeKit — no reverse engineering, no manual token grabbing.</p>
 
 ## Features
 - Automatic login to RainSoft Remind cloud
@@ -129,7 +129,7 @@ This behaves like v0.1.x.
 
 ### What gets created in HomeKit?
 
-Right now we expose the softener as a sensor-style accessory so you can view status in Home and in automations. More rich characteristics (salt level alerts, flow info, etc.) will land in future versions.
+Right now we expose the softener as a sensor-style accessory so you can view status in Home and in automations. More rich characteristics (salt level alerts, flow info, etc.) may land in future versions.
 
 ---
 
@@ -138,7 +138,7 @@ Right now we expose the softener as a sensor-style accessory so you can view sta
 🧰 Troubleshooting
 
 * “Authentication failed” → Verify your RainSoft Remind username/password by logging in at remind.rainsoft.com
-* No device found → Ensure your EC5 controller is connected to Wi-Fi and visible in the Remind mobile app.
+* No device found → Ensure your controller is connected to Wi-Fi and visible in the Remind mobile app.
 * API timeout → Increase the pollSeconds value to reduce request frequency.
 
 Run Homebridge in debug mode to see polling logs:

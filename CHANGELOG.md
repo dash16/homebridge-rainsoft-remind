@@ -1,3 +1,25 @@
+## v0.3.1 — “Platform, Meet Accessory”
+**Release Date:** 2025-10-30
+
+### 🧩 Summary
+This stabilization patch converts the plugin from a mis-declared *platform* into a properly registered *accessory*, resolving child-bridge startup failures and blank Home.app behavior after v0.3.0.  
+It also removes EC5-specific naming and clarifies configuration schema alignment.
+
+### ✨ Changes
+- ✅ Fixed **plugin type mismatch** (`platform` → `accessory`) to restore pairing and child-bridge reliability.
+- ✅ Standardized `pluginAlias` → `RainsoftRemind` (consistent casing with `index.js`).
+- ✅ Updated default accessory name and model label to generic *RainSoft System*.
+- ✅ Cleaned up logging and UI schema wording.
+- ✅ Clarified `README.md` instructions to reflect accessory configuration.
+- ✅ Bumped version to **0.3.1** and polished package metadata (keywords, description).
+
+### 🧰 Developer Notes
+- Re-add the plugin as an *accessory* (not a platform) in Homebridge UI.
+- If a broken child bridge exists from 0.3.0, remove it and restart Homebridge.
+- Future versions will build on this as the **stable baseline** for new features.
+
+---
+
 # v0.3.0 — Autodiscovery
 **Release Date:** 2025-10-27
 

@@ -30,8 +30,8 @@ class RainsoftRemindAccessory {
 		this.authToken = config.authToken;
 
 		// identity / nice-to-have
-		this.name = config.name || "RainSoft EC5";
-		this.modelLabel = config.modelLabel || "EC5-75-CV";
+		this.name = config.name || "RainSoft System";
+		this.modelLabel = config.modelLabel || "Model-Size-Resin";
 		this.serialNumber = config.serialNumber || this.deviceId || "Unknown";
 
 		// polling behavior
@@ -136,7 +136,7 @@ class RainsoftRemindAccessory {
 	
 		// If we don't have creds, we can't self-discover.
 		if (!this.email || !this.password) {
-			this.log.warn("[rainsoft-remind] No authToken/deviceId AND no email/password provided. You must fill config manually.");
+			this.log.warn("[rainsoft-remind] No authToken/deviceId AND no email/password provided. Please fill config or enable login.");
 			return;
 		}
 	
@@ -159,7 +159,7 @@ class RainsoftRemindAccessory {
 		if ((!this.serialNumber || this.serialNumber === "Unknown") && discovered.serialNumber) {
 			this.serialNumber = discovered.serialNumber;
 		}
-		if (this.name === "RainSoft EC5" && discovered.deviceName) {
+		if (this.name === "RainSoft System" && discovered.deviceName) {
 			this.name = discovered.deviceName;
 		}
 	
