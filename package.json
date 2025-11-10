@@ -1,33 +1,50 @@
 {
-	"name": "homebridge-rainsoft-remind",
-	"version": "0.3.1",
-	"description": "Expose RainSoft Remind device data (salt %, capacity %, status) to Apple Home via Homebridge.",
-	"main": "index.js",
-	"homebridge": { "accessories": ["RainsoftRemind"], "ui": true },
-	"keywords": ["homebridge-plugin","homekit","rainsoft","rainsoft remind","water softener"],
-	"engines": {
-		"node": ">=18.0.0",
-		"homebridge": ">=1.6.0"
-	},
-	"peerDependencies": {
-		"homebridge": ">=1.6.0"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/dash16/homebridge-rainsoft-remind.git"
-	},
-	"bugs": {
-		"url": "https://github.com/dash16/homebridge-rainsoft-remind/issues"
-	},
-	"homepage": "https://github.com/dash16/homebridge-rainsoft-remind#readme",
-	"dependencies": {
-		"axios": "^1.12.2"
-	},
-	"scripts": {
-		"preinstall": "echo '[RainSoft] Preparing install…'",
-		"install": "echo '[RainSoft] Installing homebridge-rainsoft-remind…'",
-		"postinstall": "echo '[RainSoft] Install complete. If this is your first time setting up, open the plugin settings in Homebridge UI to add your RainSoft credentials and device info.'"
-		},
-	"license": "MIT",
-	"author": "Dustin Newell"
+  "name": "homebridge-rainsoft-remind",
+  "displayName": "Homebridge RainSoft Remind",
+  "version": "0.4.1",
+  "private": false,
+  "description": "Expose RainSoft Remind device data (salt %, capacity %, status) to Apple Home via Homebridge.",
+  "author": "Dustin Newell",
+  "license": "MIT",
+  "homepage": "https://github.com/dash16/homebridge-rainsoft-remind#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dash16/homebridge-rainsoft-remind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dash16/homebridge-rainsoft-remind/issues"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homekit",
+    "rainsoft",
+    "rainsoft remind",
+    "water softener"
+  ],
+  "main": "dist/index.js",
+  "engines": {
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+  },
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "lint": "eslint . --max-warnings=0",
+    "prepublishOnly": "npm run lint && npm run build",
+    "watch": "npm run build && npm link && nodemon"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "homebridge-lib": "^7.1.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^24.5.2",
+    "eslint": "^9.36.0",
+    "homebridge": "^2.0.0-beta.30",
+    "nodemon": "^3.1.10",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.0"
+  }
 }
