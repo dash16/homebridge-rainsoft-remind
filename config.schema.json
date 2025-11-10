@@ -1,148 +1,66 @@
 {
 	"pluginAlias": "RainsoftRemind",
-	"pluginType": "accessory",
+	"pluginType": "platform",
 	"singular": true,
-
+	"strictValidation": false,
 	"schema": {
 		"type": "object",
 		"properties": {
 			"name": {
-				"title": "Accessory Name in Home",
+				"title": "Name",
 				"type": "string",
-				"default": "RainSoft System",
-				"description": "How this will appear in the Home app (e.g. \"RainSoft System\" or \"Water Softener\").",
+				"default": "RainSoft",
 				"required": true
 			},
-
 			"email": {
 				"title": "RainSoft Account Email",
 				"type": "string",
-				"placeholder": "name@example.com",
-				"description": "Recommended. Used to sign in to RainSoft Remind and automatically discover your system. You usually only need this and your password."
+				"format": "email",
+				"placeholder": "you@example.com",
+				"description": "Preferred: the plugin will log in and discover your water softener hardware automatically."
 			},
-
 			"password": {
 				"title": "RainSoft Account Password",
 				"type": "string",
 				"format": "password",
-				"secure": true,
-				"description": "Recommended. Stored locally in Homebridge and used to authenticate with RainSoft Remind. This lets the plugin auto-fetch your device details and live status."
+				"description": "Stored in your Homebridge config and used to refresh device info."
 			},
-
+			"authToken": {
+				"title": "Auth Token (advanced)",
+				"type": "string",
+				"description": "Paste a token captured from the RainSoft app if you don’t want to store your email/password here."
+			},
+			"deviceId": {
+				"title": "Device ID (advanced)",
+				"type": "string",
+				"description": "ID of your RainSoft system. Required if using an auth token instead of email+password."
+			},
 			"pollSeconds": {
 				"title": "Polling Interval (seconds)",
-				"type": "integer",
-				"default": 1800,
-				"description": "How often to refresh salt level and system status. Higher = fewer API calls. Default 1800 (30 min)."
-			},
-
-			"forceUpdate": {
-				"title": "Force Unit Refresh Before Poll",
-				"type": "boolean",
-				"default": true,
-				"description": "If enabled, the plugin will ask your hardware to push fresh data to the cloud before reading it."
-			},
-
-			"modelLabel": {
-				"title": "Detected Model",
-				"type": "string",
-				"readOnly": true,
-				"description": "Read-only. Populated automatically from RainSoft (example: Model-Size-Resin)."
-			},
-
-			"serialNumber": {
-				"title": "Detected Serial Number",
-				"type": "string",
-				"readOnly": true,
-				"description": "Read-only. Populated automatically from RainSoft."
-			},
-
-			"firmwareVersion": {
-				"title": "Reported Firmware Version",
-				"type": "string",
-				"readOnly": true,
-				"description": "Read-only. Firmware / software version currently reported by your hardware."
-			},
-
-			"dealerName": {
-				"title": "Dealer / Installer",
-				"type": "string",
-				"readOnly": true,
-				"description": "Read-only. Your registered RainSoft dealer or installer, for service/warranty."
-			},
-
-			"dealerPhone": {
-				"title": "Dealer Phone",
-				"type": "string",
-				"readOnly": true,
-				"description": "Read-only. Phone number for the dealer/installer, if provided."
-			},
-
-			"deviceId": {
-				"title": "Device ID (manual override)",
-				"type": "string",
-				"placeholder": "123456",
-				"description": "Advanced. Only fill this in if you are NOT using email+password. This is the numeric ID RainSoft uses for your system."
-			},
-
-			"authToken": {
-				"title": "Auth Token (manual override)",
-				"type": "string",
-				"secure": true,
-				"placeholder": "abcd1234-example-token-5678",
-				"description": "Advanced. X-Remind-Auth-Token from RainSoft Remind API calls. Only needed if you are not using email+password. KEEP THIS SECRET."
+				"type": "number",
+				"default": 300,
+				"description": "How often to refresh status from your RainSoft system."
 			}
 		}
 	},
-
 	"layout": [
 		{
-			"type": "section",
-			"title": "Home Accessory",
+			"type": "fieldset",
+			"title": "Account (preferred)",
 			"items": [
-				{ "key": "name" }
+				"name",
+				"email",
+				"password",
+				"pollSeconds"
 			]
 		},
 		{
-			"type": "section",
-			"title": "Recommended Setup",
-			"description": "Sign in with your RainSoft Remind account. The plugin will authenticate, discover your water softener hardware automatically, and keep HomeKit updated. This is the normal / supported setup.",
+			"type": "fieldset",
+			"title": "Advanced (manual device/auth)",
+			"description": "Use this if you don’t want to store your RainSoft credentials here.",
 			"items": [
-				{ "key": "email" },
-				{ "key": "password" }
-			]
-		},
-		{
-			"type": "section",
-			"title": "Polling Behavior",
-			"items": [
-				{ "key": "pollSeconds" },
-				{ "key": "forceUpdate" }
-			]
-		},
-		{
-			"type": "section",
-			"title": "Discovered Device Info",
-			"description": "These values come back from RainSoft after a successful login. They're shown here so you can confirm we matched the right system.",
-			"expandable": true,
-			"expanded": false,
-			"items": [
-				{ "key": "modelLabel" },
-				{ "key": "serialNumber" },
-				{ "key": "firmwareVersion" },
-				{ "key": "dealerName" },
-				{ "key": "dealerPhone" }
-			]
-		},
-		{
-			"type": "section",
-			"title": "Power Users / Manual Setup (Not Recommended)",
-			"description": "Only use this if you don't want to store your RainSoft email+password here. You will have to capture a valid X-Remind-Auth-Token and the numeric deviceId yourself. Most users should leave this blank.",
-			"expandable": true,
-			"expanded": false,
-			"items": [
-				{ "key": "deviceId" },
-				{ "key": "authToken" }
+				"authToken",
+				"deviceId"
 			]
 		}
 	]

@@ -1,0 +1,5 @@
+src/
+homebridge-ui/
+node_modules/
+*.ts
+*.log

@@ -1,3 +1,24 @@
+## v0.4.1 — Schema-only reset
+**Release Date:** 2025-11-10
+
+- Rolled back from experimental custom UI introduced in v0.4.0
+- Removed `@homebridge/plugin-ui-utils` dependency and all UI server code
+- Restored clean, schema-driven configuration (`config.schema.json`)
+- Simplified config: removed read-only dealer and firmware fields
+- Retained both login (email + password) and manual (authToken + deviceId) authentication paths
+- Preserved plugin icon in `homebridge-ui/public/` for eventual custom UI return
+- Bumped package.json to 0.4.1 and published to npm / GitHub for stable release tracking
+
+## v0.4.0 — Experimental custom UI release (npm only)
+**Release Date:** 2025-11-07
+
+- Introduced experimental **Homebridge Custom UI** powered by `@homebridge/plugin-ui-utils`
+- Added `/homebridge-ui/server.js` to handle `/login` and `/identity` API calls from the web UI
+- Added HTML-based interface at `/homebridge-ui/public/index.html`
+- Automatically discovered RainSoft system identity (model, serial, firmware, dealer info)
+- Updated `config.schema.json` with `"customUi": true` and custom button action handler
+- Shipped to **npm** but not published to **GitHub**; later deprecated due to UI runtime issues
+
 ## v0.3.1 — “Platform, Meet Accessory”
 **Release Date:** 2025-10-30
 
