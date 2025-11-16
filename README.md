@@ -10,7 +10,7 @@
 </p>
 
 <h1 align="center">homebridge-rainsoft-remind</h1>
-<p align="center"> 🌧️ A Homebridge plugin for monitoring your RainSoft system in HomeKit — no reverse engineering, no manual token grabbing.</p>
+<p align="center"> 🌧️ A Homebridge plugin for monitoring your RainSoft system in HomeKit. </p>
 
 ## Features
 - Automatic login to RainSoft Remind cloud
@@ -35,7 +35,7 @@ sudo npm install -g homebridge-rainsoft-remind
 
 The plugin securely authenticates to the RainSoft Remind API, discovers your device, and exposes its key metrics to HomeKit. It refreshes these metrics automatically on a schedule you control.
 
-### How to Obtain Your Device ID and Auth Token
+### How to Obtain Your Device ID and Auth Token (Manual configuration)
 
 > ⚠️ Some values come from your **RainSoft Remind** mobile app but are not required for the plugin to connect.  This is optional if you don't feel comfortable storing your username and password in the config files.
 > You only need to collect them once. Keep them private.
@@ -129,7 +129,10 @@ This behaves like v0.1.x.
 
 ### What gets created in HomeKit?
 
-Right now we expose the softener as a sensor-style accessory so you can view status in Home and in automations. More rich characteristics (salt level alerts, flow info, etc.) may land in future versions.
+* Contact sensor - Off when the system is working normally.  Will flip on when the system has an alert or needs your attention, such as low salt levels or active regeneration.
+* Occupancy sensor - When RainSoft system is actively regenerating, shows occupancy.
+* Battery - Shows remaining salt in tank.
+* Humidity Sensor - Shows capacity remaining before regeneration of resin filters.
 
 ---
 
@@ -148,6 +151,7 @@ homebridge -D
 
 ## 📦 Version History
 
+* v0.4.0 - Plugin rewrite using [Homebridge plugin template](https://github.com/homebridge/homebridge-plugin-template)
 * v0.3.0 “Autodiscovery” – Full automatic login and device discovery (no Charles Proxy needed)
 * v0.2.x – Manual device ID & token workflow
 * v0.1.x – Initial proof-of-concept releases

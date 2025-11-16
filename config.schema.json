@@ -37,9 +37,12 @@
 			},
 			"pollSeconds": {
 				"title": "Polling Interval (seconds)",
-				"type": "number",
-				"default": 300,
-				"description": "How often to refresh status from your RainSoft system."
+				"type": "integer",
+				"minimum": 300,
+				"maximum": 86400,
+				"default": 1800,
+				"required": false,
+				"description": "How often to poll RainSoft cloud for status updates. Default is 1800 seconds (30 minutes)."
 			}
 		}
 	},

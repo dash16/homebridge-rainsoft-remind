@@ -1,3 +1,47 @@
+# v0.4.4 — Name Tags
+**Release Date:** 2025-11-15
+
+### Highlights
+- Friendly service names now show in Home (and in Homebridge UI):
+  - **Capacity Remaining** (HumiditySensor)
+  - **Regeneration** (Occupancy/Contact sensor in your build)
+  - **Status** (accessory information summary)
+- Serial number fallback remains DeviceID if a true serial is not available (to be refined later).
+
+### Fixes
+- Safer default values for Accessory Information to avoid undefined reads during boot.
+- Small internal cleanups for snapshot handling/log messages.
+
+---
+
+# v0.4.3 — Dealer Drop (npm only)
+**Release Date:** 2025-11-14
+
+### Highlights
+- `identity.json` now **persists dealer information** (name, email, phone) captured from the device API.
+- Identity store write path hardened; file is created when missing and updated on login/poll as needed.
+
+### Fixes
+- Reduced noisy logs while restoring the cached accessory.
+- Minor resilience improvements if the RainSoft service returns partial data.
+
+---
+
+# v0.4.2 — One Accessory, One Timer (npm only)
+**Release Date:** 2025-11-10
+
+### Highlights
+- **Single accessory** registration and restoration (eliminates the “triplicated accessories” issue).
+- Platform-level **single polling timer** with an ensure-once guard (no duplicate pollers).
+- TypeScript/HAP typing alignment to unblock builds.
+- More defensive defaults for first-run initialization (no identity yet).
+
+### Fixes
+- Compile error around non-existent `HAP.Service.BatteryService` resolved.
+- Better handling when `deviceId` is missing; clearer assert and early return.
+- Safer platform bootstrap and improved error messages around HTTP 400/0 cases.
+---
+
 ## v0.4.1 — Schema-only reset
 **Release Date:** 2025-11-10
 
