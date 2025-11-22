@@ -151,6 +151,7 @@ homebridge -D
 
 ## 📦 Version History
 
+* v0.4.1 - v0.4.5 - Stability passes, fixed bugs introduced by plugin rewrite.
 * v0.4.0 - Plugin rewrite using [Homebridge plugin template](https://github.com/homebridge/homebridge-plugin-template)
 * v0.3.0 “Autodiscovery” – Full automatic login and device discovery (no Charles Proxy needed)
 * v0.2.x – Manual device ID & token workflow

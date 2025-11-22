@@ -33,10 +33,14 @@ export class RainsoftRemindAccessory {
 	) {
 		// Core services 
 		const HAP = this.platform.api.hap;
-				
+		
 		this.statusService =
-			this.accessory.getService('Status') ||
-			this.accessory.addService(HAP.Service.ContactSensor, this.accessory.displayName + ' Status', 'status');
+			this.accessory.getServiceById(HAP.Service.ContactSensor, 'status') ??
+			this.accessory.addService(
+				HAP.Service.ContactSensor,
+				this.accessory.displayName + ' Status',
+				'status',
+			);
 		
 		const ServiceCtor = HAP.Service as any;
 		const BatteryService =

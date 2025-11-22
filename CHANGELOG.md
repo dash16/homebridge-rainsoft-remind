@@ -1,3 +1,14 @@
+## v0.4.5 – Cached Contact Cleanup
+**Release Date:** 2025-11-21
+
+### Fixed
+- Resolved a startup crash caused by attempting to add a duplicate `ContactSensor` service with subtype `status` when restoring cached accessories.
+  - The `Status` service is now created idempotently using `getServiceById(..., 'status')` before falling back to `addService(...)`.
+  - Existing cached accessories will now restore cleanly without throwing `Cannot add a Service with the same UUID ... and subtype 'status'` errors.
+
+### Notes
+- No new features or breaking changes. This is a targeted stability patch on top of v0.4.4.
+
 # v0.4.4 — Name Tags
 **Release Date:** 2025-11-15
 
