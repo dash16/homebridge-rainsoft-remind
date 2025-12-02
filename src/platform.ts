@@ -32,6 +32,28 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 
 	private readonly apiClient: any;
 
+	private isConfigured(): boolean {
+
+		if (this.config.email && this.config.password) {
+			return true;
+		}
+	
+		if (this.config.authToken && this.config.deviceId) {
+			return true;
+		}
+	
+		try {
+			const id = identityStore.load(this.api.user.storagePath());
+			if (id?.deviceId) {
+				return true;
+			}
+		} catch {
+
+		}
+	
+		return false;
+	}
+
 	constructor(
 		public readonly log: Logger,
 		public readonly config: PlatformConfig,
@@ -41,9 +63,22 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 		this.pollSeconds = Number((this.config as any)?.pollSeconds ?? 300);
 
 		this.api.on('didFinishLaunching', async () => {
-			await this.ensureAccessory();
-			await this.ensureIdentity();
-			this.startPolling();
+
+			if (!this.isConfigured()) {
+				this.log.warn(
+					'[rainsoft-remind] Plugin not configured. ' +
+					'Add email/password or authToken/deviceId (or have an identity.json with deviceId) to begin polling.',
+				);
+				return;
+			}
+		
+			try {
+				await this.ensureAccessory();
+				await this.ensureIdentity();
+				this.startPolling();
+			} catch (err) {
+				this.log.error('[rainsoft-remind] Startup error:', String(err));
+			}
 		});
 
 		this.api.on('shutdown', () => this.stopPolling());

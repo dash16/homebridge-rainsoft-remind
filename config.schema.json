@@ -9,8 +9,7 @@
 			"name": {
 				"title": "Name",
 				"type": "string",
-				"default": "RainSoft",
-				"required": true
+				"default": "RainSoft"
 			},
 			"email": {
 				"title": "RainSoft Account Email",
@@ -41,10 +40,10 @@
 				"minimum": 300,
 				"maximum": 86400,
 				"default": 1800,
-				"required": false,
 				"description": "How often to poll RainSoft cloud for status updates. Default is 1800 seconds (30 minutes)."
 			}
-		}
+		},
+		"required": ["name"]
 	},
 	"layout": [
 		{

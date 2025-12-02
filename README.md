@@ -21,6 +21,14 @@
 	- Reports **remaining capacity until regeneration** as a Humidity Sensor  
 - Configurable polling interval and “force update” option
 
+## Requirements
+
+- **Node.js:** v20, v22, or v24 (current LTS releases)
+- **Homebridge:** v1.8.0 or newer (including 2.0 beta)
+- **Platform type:** Dynamic platform plugin (single accessory representing your RainSoft system)
+
+Tested on Node.js v20, v22, and v24 with Homebridge v1.8+.
+
 ## Installation
 1. **Install via Homebridge UI:**
    - Search for `homebridge-rainsoft-remind` in the Homebridge Plugin Library.
