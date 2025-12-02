@@ -1,3 +1,12 @@
+## v0.4.6 – Schema polish
+
+**Release Date:** 2025-12-01
+
+- Fixed `config.schema.json` to use top-level `"required"` array instead of per-field booleans, matching JSON Schema and Homebridge validator expectations.
+- Added explicit startup configuration guard (`isConfigured`) so the plugin will not poll or call the RainSoft API until configured.
+- Documented supported Node.js / Homebridge versions in the README.
+- Minor repo/package hygiene (.gitignore / .npmignore).
+
 ## v0.4.5 – Cached Contact Cleanup
 **Release Date:** 2025-11-21
 
