@@ -1,8 +1,8 @@
 {
 	"pluginAlias": "RainsoftRemind",
 	"pluginType": "platform",
+	"customUi": true,
 	"singular": true,
-	"strictValidation": false,
 	"schema": {
 		"type": "object",
 		"properties": {
@@ -24,23 +24,33 @@
 				"format": "password",
 				"description": "Stored in your Homebridge config and used to refresh device info."
 			},
-			"authToken": {
-				"title": "Auth Token (advanced)",
-				"type": "string",
-				"description": "Paste a token captured from the RainSoft app if you don’t want to store your email/password here."
-			},
-			"deviceId": {
-				"title": "Device ID (advanced)",
-				"type": "string",
-				"description": "ID of your RainSoft system. Required if using an auth token instead of email+password."
-			},
 			"pollSeconds": {
-				"title": "Polling Interval (seconds)",
+				"title": "Polling Interval",
 				"type": "integer",
-				"minimum": 300,
-				"maximum": 86400,
+				"oneOf": [
+					{
+						"title": "5 minutes",
+						"const": 300
+					},
+					{
+						"title": "30 minutes (default)",
+						"const": 1800
+					},
+					{
+						"title": "1 hour",
+						"const": 3600
+					},
+					{
+						"title": "12 hours",
+						"const": 43200
+					},
+					{
+						"title": "24 hours",
+						"const": 86400
+					}
+				],
 				"default": 1800,
-				"description": "How often to poll RainSoft cloud for status updates. Default is 1800 seconds (30 minutes)."
+				"description": "How often to poll RainSoft cloud for status updates."
 			}
 		},
 		"required": ["name"]
@@ -48,21 +58,12 @@
 	"layout": [
 		{
 			"type": "fieldset",
-			"title": "Account (preferred)",
+			"title": "Rainsoft Account",
 			"items": [
 				"name",
 				"email",
 				"password",
 				"pollSeconds"
-			]
-		},
-		{
-			"type": "fieldset",
-			"title": "Advanced (manual device/auth)",
-			"description": "Use this if you don’t want to store your RainSoft credentials here.",
-			"items": [
-				"authToken",
-				"deviceId"
 			]
 		}
 	]

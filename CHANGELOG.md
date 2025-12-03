@@ -1,3 +1,27 @@
+## v0.4.7 – Custom UI & Dealer Details
+
+**Release Date:** 2025-12-02
+
+### Added
+- Custom config UI for RainSoft Remind:
+  - Dedicated name, email, password, and polling interval controls.
+  - Polling interval now selected from a human-readable dropdown (5 minutes, 30 minutes, 1 hour, 12 hours, 24 hours), stored as seconds in config.
+
+- Dealer & regeneration details panel in the Homebridge UI:
+  - Displays dealer name, phone, email, last regeneration date, and snapshot timestamp.
+  - Reads directly from `identity.json` / `status.json` persisted by the plugin.
+
+### Changed
+- When a valid `identity.json` is present:
+  - Account Email and Password fields are locked (read-only).
+  - A **Sign out** button is shown to clear stored identity/status and unlock the fields again.
+- Firmware revision string in the accessory’s information service no longer shows unreliable “Next regen” time:
+  - Now displays either `<firmware> • Last Regen <localized time>` or `Last Regen: <localized time>` when firmware is unknown.
+
+### Removed
+- Manual auth token / device ID configuration is no longer exposed in the UI:
+  - The code path remains internally for now, but fields have been removed from the configuration surface in preparation for deprecation.
+
 ## v0.4.6 – Schema polish
 
 **Release Date:** 2025-12-01

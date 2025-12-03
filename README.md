@@ -74,20 +74,10 @@ After installing, open the plugin’s Settings page in Homebridge UI.
 | Field                | Description                                 |
 | -------------------- | ------------------------------------------- |
 | **Name**             | How it appears in Home                      |
-| **Model Label**      | From RainSoft Remind → System Info → Model  |
 | **Email**    		   | Username used in RainSoft Remind to log in  |
 | **Password**    	   | Password used in RainSoft Remind to log in  |
-| **Serial Number**    | From RainSoft Remind → System Info → Serial |
-| **Device ID**        | Numeric ID from the RainSoft API URL        |
-| **Auth Token**       | Value of `X-Remind-Auth-Token` header       |
-| **Polling Interval** | How often to refresh (default 300 s)        |
-| **Force Update**     | Request latest readings before each poll    |
+| **Polling Interval** | How often to refresh (default 1800 s)       |
 
-You now have two ways to configure the plugin:
-
-### Option A: Automatic (Recommended)
-
-Let the plugin talk to your RainSoft Remind account and pull device info for you.
 
 1. In Homebridge UI:
 
@@ -105,33 +95,11 @@ What this does:
 * It will request your device / location info (model, serial, etc.).
 * Those details are then used to expose your softener to HomeKit.
 
-Why this is nice:
-
-* No packet sniffing.
-* No manual deviceID/Auth Token scraping.
-
 Security note:
 
 * Your RainSoft email + password are stored in `config.json` the same way other Homebridge plugins store credentials.
 * We do NOT send your credentials anywhere except directly to the RainSoft Remind API.
 * We do NOT expose your credentials to HomeKit.
-
-### Option B: Manual (No credentials stored)
-
-If you don't want to save your RainSoft login:
-
-1. In the Remind mobile app, note:
-
-   * Device serial number
-   * Model number
-
-2. In Homebridge UI, leave the email/password blank and instead fill in the device info fields manually.
-
-3. Input Auth Token and Device ID obtained from network proxy.
-
-4. Save and restart Homebridge.
-
-This behaves like v0.1.x.
 
 ---
 

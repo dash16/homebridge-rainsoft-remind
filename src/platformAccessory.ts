@@ -158,15 +158,24 @@ export class RainsoftRemindAccessory {
 		const id = identityStore.load(base);
 		const st = identityStore.loadStatus(base);
 		
-		// Firmware (from identity) + last/next regen (from status.json)
-		const fw = id.firmware || 'unknown';
-		const last = st?.lastRegenDate ? String(st.lastRegenDate).split('T')[0] : '—';
-		// "HH:MM" from ISO for next regen
-		const next = st?.nextRegenTime ? new Date(st.nextRegenTime).toISOString().substring(11, 16) : '—';
+		// Firmware (from identity) + last regen (from status.json)
+		const fw = id.firmware && String(id.firmware).trim() ? String(id.firmware).trim() : null;
+		
+		// Pretty-print last regen using the helper
+		const lastPretty = st?.lastRegenDate ? formatLocal(st.lastRegenDate) : '—';
+		
+		let fwRevision: string;
+		if (fw) {
+			// If we know the firmware, include it alongside last regen
+			fwRevision = `${fw} • Last Regen ${lastPretty}`;
+		} else {
+			// If firmware is unknown, just show last regen cleanly
+			fwRevision = `Last Regen: ${lastPretty}`;
+		}
 		
 		info.setCharacteristic(
 			this.platform.Characteristic.FirmwareRevision,
-			`${fw} • Last ${last} • Next ${next}`
+			fwRevision,
 		);
 		
 		// Optional: show dealer name on HardwareRevision line

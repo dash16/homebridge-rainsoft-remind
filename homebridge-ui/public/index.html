@@ -1,0 +1,336 @@
+<!-- homebridge-ui/public/index.html -->
+
+<div class="text-center mb-3">
+	<img
+		src="icon.png"
+		alt="RainSoft Remind"
+		style="width:96px;height:96px;border-radius:5px;"
+	/>
+</div>
+
+<div class="card mb-3 mt-3">
+	<div class="card-body d-flex flex-wrap align-items-center justify-content-between">
+		<div>
+			<h3 class="card-title mb-1">RainSoft Remind</h3>
+			<p class="card-text mb-0">
+				Enter your RainSoft account email and password. The plugin will log in and discover your water softener hardware automatically.
+			</p>
+			<small id="rainsoft-status" class="text-muted"></small>
+		</div>
+		<button
+			id="rainsoft-signout-btn"
+			type="button"
+			class="btn btn-outline-danger btn-sm mt-2 mt-sm-0"
+			style="display: none;"
+		>
+			Sign out
+		</button>
+	</div>
+</div>
+
+<!-- Credentials / config card -->
+<div class="card mb-3">
+	<div class="card-body">
+		<h5 class="card-title">RainSoft Cloud Credentials</h5>
+
+		<div class="mb-3">
+			<label for="rsName" class="form-label">Accessory Name</label>
+			<input type="text" id="rsName" class="form-control">
+		</div>
+
+		<div class="mb-3">
+			<label for="rsEmail" class="form-label">RainSoft Account Email</label>
+			<input type="email" id="rsEmail" class="form-control" autocomplete="username">
+		</div>
+
+		<div class="mb-3">
+			<label for="rsPassword" class="form-label">RainSoft Account Password</label>
+			<input type="password" id="rsPassword" class="form-control" autocomplete="current-password">
+		</div>
+
+		<div class="mb-3">
+			<label for="rsPoll" class="form-label">Polling Interval</label>
+			<select id="rsPoll" class="form-select">
+				<option value="300">5 minutes</option>
+				<option value="1800">30 minutes (default)</option>
+				<option value="3600">1 hour</option>
+				<option value="43200">12 hours</option>
+				<option value="86400">24 hours</option>
+			</select>
+			<div class="form-text">
+				How often to poll RainSoft cloud for status updates.
+			</div>
+		</div>
+
+		<p class="mb-0 text-muted">
+			Changes are saved to the plugin configuration immediately. Click
+			<strong>Save</strong> in Homebridge to apply them.
+		</p>
+	</div>
+</div>
+
+<!-- Dealer & Regeneration Details -->
+<div class="card mb-3">
+	<div class="card-header">
+		Dealer &amp; Regeneration Details
+	</div>
+	<div class="card-body">
+		<div id="rainsoft-info-loading" class="text-muted mb-2">
+			Loading dealer and regeneration information&hellip;
+		</div>
+
+		<div
+			id="rainsoft-info-empty"
+			class="alert alert-warning mb-0"
+			style="display: none;"
+		>
+			No dealer or regeneration information has been saved yet. It will appear
+			here after the plugin successfully fetches identity and status details
+			from your RainSoft system.
+		</div>
+
+		<div id="rainsoft-info-content" style="display: none;">
+			<dl class="row mb-0">
+				<dt class="col-sm-3">Dealer</dt>
+				<dd class="col-sm-9 text-muted" id="rainsoft-dealer-name">—</dd>
+
+				<dt class="col-sm-3">Phone</dt>
+				<dd class="col-sm-9 text-muted" id="rainsoft-dealer-phone">—</dd>
+
+				<dt class="col-sm-3">Email</dt>
+				<dd class="col-sm-9 text-muted" id="rainsoft-dealer-email">—</dd>
+
+				<dt class="col-sm-3">Last Regen</dt>
+				<dd class="col-sm-9 text-muted" id="rainsoft-last-regen">—</dd>
+
+				<dt class="col-sm-3">Snapshot As Of</dt>
+				<dd class="col-sm-9 text-muted" id="rainsoft-as-of">—</dd>
+			</dl>
+		</div>
+	</div>
+</div>
+
+<script>
+function formatDate(value) {
+	if (!value) return '—';
+	try {
+		var d = new Date(value);
+		return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+	} catch {
+		return '—';
+	}
+}
+
+homebridge.addEventListener('ready', async () => {
+	// ----- DOM refs -----
+	var nameInput = document.getElementById('rsName');
+	var emailInput = document.getElementById('rsEmail');
+	var passwordInput = document.getElementById('rsPassword');
+	var pollSelect = document.getElementById('rsPoll');
+	var signOutBtn = document.getElementById('rainsoft-signout-btn');
+	var statusEl = document.getElementById('rainsoft-status');
+
+	// Dealer / regen refs
+	var loadingEl = document.getElementById('rainsoft-info-loading');
+	var emptyEl = document.getElementById('rainsoft-info-empty');
+	var contentEl = document.getElementById('rainsoft-info-content');
+
+	var dealerNameEl = document.getElementById('rainsoft-dealer-name');
+	var dealerPhoneEl = document.getElementById('rainsoft-dealer-phone');
+	var dealerEmailEl = document.getElementById('rainsoft-dealer-email');
+	var lastRegenEl = document.getElementById('rainsoft-last-regen');
+	var asOfEl = document.getElementById('rainsoft-as-of');
+
+	// ----- Config wiring (like Cync) -----
+	var pluginConfig = await homebridge.getPluginConfig();
+	var cfg = pluginConfig[0] || {};
+
+	function setLockedState(locked) {
+		if (emailInput) {
+			emailInput.disabled = locked;
+			emailInput.readOnly = locked;
+		}
+		if (passwordInput) {
+			passwordInput.disabled = locked;
+			passwordInput.readOnly = locked;
+		}
+		// poll interval and name remain editable
+	}
+
+	async function updateConfig(partial) {
+		cfg = Object.assign({}, cfg, partial);
+		pluginConfig = [cfg];
+		await homebridge.updatePluginConfig(pluginConfig);
+	}
+
+	// Load from config.json into UI
+	if (nameInput) {
+		nameInput.value = cfg.name || 'RainSoft';
+	}
+	if (emailInput) {
+		emailInput.value = cfg.email || '';
+	}
+	if (passwordInput) {
+		passwordInput.value = cfg.password || '';
+	}
+	if (pollSelect) {
+		var currentPoll = cfg.pollSeconds || 1800;
+		// If currentPoll isn't one of the options, leave selection alone but keep value
+		if (Array.prototype.some.call(pollSelect.options, function (opt) {
+			return String(opt.value) === String(currentPoll);
+		})) {
+			pollSelect.value = String(currentPoll);
+		} else {
+			pollSelect.value = '1800';
+		}
+	}
+
+	// Listen for changes and write back to config
+	if (nameInput) {
+		nameInput.addEventListener('change', function () {
+			updateConfig({ name: nameInput.value || 'RainSoft' })
+				.catch(function (e) {
+					console.error('[rainsoft-ui] failed to update name:', e);
+				});
+		});
+	}
+
+	if (emailInput) {
+		emailInput.addEventListener('change', function () {
+			updateConfig({ email: emailInput.value.trim() })
+				.catch(function (e) {
+					console.error('[rainsoft-ui] failed to update email:', e);
+				});
+		});
+	}
+
+	if (passwordInput) {
+		passwordInput.addEventListener('change', function () {
+			updateConfig({ password: passwordInput.value })
+				.catch(function (e) {
+					console.error('[rainsoft-ui] failed to update password:', e);
+				});
+		});
+	}
+
+	if (pollSelect) {
+		pollSelect.addEventListener('change', function () {
+			var seconds = parseInt(pollSelect.value, 10);
+			if (!seconds || seconds < 60) {
+				seconds = 1800;
+			}
+			updateConfig({ pollSeconds: seconds })
+				.catch(function (e) {
+					console.error('[rainsoft-ui] failed to update pollSeconds:', e);
+				});
+		});
+	}
+
+	// ----- Auth state / Sign out (using identity.json) -----
+
+	async function refreshAuthState() {
+		try {
+			var state = await homebridge.request('/rainsoft/auth-state', {});
+			var hasIdentity = !!(state && state.hasIdentity);
+
+			setLockedState(hasIdentity);
+
+			if (signOutBtn) {
+				signOutBtn.style.display = hasIdentity ? '' : 'none';
+			}
+
+			if (statusEl) {
+				if (hasIdentity) {
+					var label = cfg.email || 'RainSoft account';
+					statusEl.textContent = 'Signed in. Using ' + label + '.';
+				} else {
+					statusEl.textContent = 'Not signed in yet. Enter credentials and click Save in Homebridge.';
+				}
+			}
+		} catch (err) {
+			console.error('[rainsoft-ui] /rainsoft/auth-state error:', err);
+			setLockedState(false);
+			if (signOutBtn) {
+				signOutBtn.style.display = 'none';
+			}
+			if (statusEl) {
+				statusEl.textContent = 'Unable to determine sign-in state.';
+			}
+		}
+	}
+
+	if (signOutBtn) {
+		signOutBtn.addEventListener('click', async function () {
+			try {
+				await homebridge.request('/rainsoft/signout', {});
+				homebridge.toast.success(
+					'Signed out. You can now change your RainSoft credentials.',
+					'RainSoft Remind'
+				);
+
+				// Unlock fields; keep current values so user can edit/change them
+				setLockedState(false);
+				if (signOutBtn) {
+					signOutBtn.style.display = 'none';
+				}
+				if (statusEl) {
+					statusEl.textContent = 'Signed out. Click Save in Homebridge to apply changes.';
+				}
+			} catch (err) {
+				console.error('[rainsoft-ui] /rainsoft/signout error:', err);
+				homebridge.toast.error(
+					'Failed to sign out. See logs for details.',
+					'RainSoft Remind'
+				);
+			}
+		});
+	}
+
+	// Initial auth-state check
+	refreshAuthState();
+
+	// ----- Dealer / regen info wiring -----
+	var info;
+	try {
+		info = await homebridge.request('/rainsoft/info', {});
+	} catch (err) {
+		console.error('[rainsoft-remind][ui] /rainsoft/info error:', err);
+		if (loadingEl) {
+			loadingEl.textContent =
+				'Failed to load dealer/regeneration information.';
+		}
+		homebridge.toast.error(
+			'Failed to load dealer/regeneration information.',
+			'RainSoft Remind'
+		);
+		return;
+	}
+
+	if (loadingEl) {
+		loadingEl.style.display = 'none';
+	}
+
+	if (!info) {
+		if (emptyEl) emptyEl.style.display = '';
+		return;
+	}
+
+	var hasDealer =
+		info.dealerName || info.dealerPhone || info.dealerEmail;
+	var hasRegen = info.lastRegenDate || info.asOf;
+
+	if (!hasDealer && !hasRegen) {
+		if (emptyEl) emptyEl.style.display = '';
+		return;
+	}
+
+	if (dealerNameEl) dealerNameEl.textContent = info.dealerName || '—';
+	if (dealerPhoneEl) dealerPhoneEl.textContent = info.dealerPhone || '—';
+	if (dealerEmailEl) dealerEmailEl.textContent = info.dealerEmail || '—';
+
+	if (lastRegenEl) lastRegenEl.textContent = formatDate(info.lastRegenDate);
+	if (asOfEl) asOfEl.textContent = formatDate(info.asOf);
+
+	if (contentEl) contentEl.style.display = '';
+});
+</script>
