@@ -1,17 +1,14 @@
 // homebridge-ui/server.js
-// UI server for homebridge-rainsoft-remind (ESM UI + CJS backend)
+'use strict';
 
-import { HomebridgePluginUiServer } from '@homebridge/plugin-ui-utils';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
+const { HomebridgePluginUiServer } = require('@homebridge/plugin-ui-utils');
 const identityStore = require('../lib/identityStore.js');
 
 class RainsoftRemindUiServer extends HomebridgePluginUiServer {
 	constructor() {
 		super();
 
-		// Dealer + regen info (already in use by the UI)
+		// Dealer + regen info
 		this.onRequest('/rainsoft/info', async () => {
 			const storagePath = this.homebridgeStoragePath;
 
@@ -48,8 +45,7 @@ class RainsoftRemindUiServer extends HomebridgePluginUiServer {
 		// "Sign out": reset identity + status to blank
 		this.onRequest('/rainsoft/signout', async () => {
 			const storagePath = this.homebridgeStoragePath;
-			
-			// Reset identity and status to blank objects; identityStore will normalise
+
 			try {
 				identityStore.save(storagePath, {});
 			} catch (e) {

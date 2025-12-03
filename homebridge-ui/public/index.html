@@ -15,16 +15,7 @@
 			<p class="card-text mb-0">
 				Enter your RainSoft account email and password. The plugin will log in and discover your water softener hardware automatically.
 			</p>
-			<small id="rainsoft-status" class="text-muted"></small>
 		</div>
-		<button
-			id="rainsoft-signout-btn"
-			type="button"
-			class="btn btn-outline-danger btn-sm mt-2 mt-sm-0"
-			style="display: none;"
-		>
-			Sign out
-		</button>
 	</div>
 </div>
 
@@ -45,9 +36,31 @@
 
 		<div class="mb-3">
 			<label for="rsPassword" class="form-label">RainSoft Account Password</label>
-			<input type="password" id="rsPassword" class="form-control" autocomplete="current-password">
+			<div class="input-group">
+				<input
+					type="password"
+					id="rsPassword"
+					class="form-control"
+					autocomplete="current-password"
+				>
+				<button
+					class="btn btn-outline-secondary"
+					type="button"
+					id="rsPasswordToggle"
+				>
+					Show
+				</button>
+			</div>
 		</div>
-
+		<small id="rainsoft-status" class="text-muted"></small>
+		<button
+			id="rainsoft-signout-btn"
+			type="button"
+			class="btn btn-outline-danger btn-sm mt-2 mt-sm-0"
+			style="display: none;"
+		>
+		Sign out
+		</button>
 		<div class="mb-3">
 			<label for="rsPoll" class="form-label">Polling Interval</label>
 			<select id="rsPoll" class="form-select">
@@ -57,8 +70,8 @@
 				<option value="43200">12 hours</option>
 				<option value="86400">24 hours</option>
 			</select>
-			<div class="form-text">
-				How often to poll RainSoft cloud for status updates.
+			<div class="form-text" id="rsPollHelp">
+				Polling determines how often the plugin checks RainSoft cloud for updates.
 			</div>
 		</div>
 
@@ -70,9 +83,16 @@
 </div>
 
 <!-- Dealer & Regeneration Details -->
-<div class="card mb-3">
-	<div class="card-header">
-		Dealer &amp; Regeneration Details
+<div class="card mb-4">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<span>Dealer &amp; Regeneration Details</span>
+		<button
+			type="button"
+			class="btn btn-outline-secondary btn-sm"
+			id="rainsoft-info-refresh"
+		>
+			Refresh
+		</button>
 	</div>
 	<div class="card-body">
 		<div id="rainsoft-info-loading" class="text-muted mb-2">
@@ -107,6 +127,12 @@
 				<dd class="col-sm-9 text-muted" id="rainsoft-as-of">—</dd>
 			</dl>
 		</div>
+		<div class="card-header">
+			Dealer &amp; Regeneration Details
+			<small class="text-muted d-block">
+				Read-only information fetched from your RainSoft account.
+			</small>
+		</div>
 	</div>
 </div>
 
@@ -121,6 +147,23 @@ function formatDate(value) {
 	}
 }
 
+
+// ### 🧩 Dealer Contact Link Helpers: make dealer phone/email clickable in the UI
+function buildTelHref(raw) {
+	if (!raw) return null;
+	var cleaned = String(raw).replace(/[^\d+]/g, '');
+	return cleaned ? 'tel:' + cleaned : null;
+}
+
+function buildMailtoHref(raw) {
+	if (!raw) return null;
+	var email = String(raw).trim();
+	if (!email) return null;
+	// Basic sanity check; you already control the source, so keep it light
+	if (email.indexOf('@') === -1) return null;
+	return 'mailto:' + email;
+}
+
 homebridge.addEventListener('ready', async () => {
 	// ----- DOM refs -----
 	var nameInput = document.getElementById('rsName');
@@ -129,7 +172,10 @@ homebridge.addEventListener('ready', async () => {
 	var pollSelect = document.getElementById('rsPoll');
 	var signOutBtn = document.getElementById('rainsoft-signout-btn');
 	var statusEl = document.getElementById('rainsoft-status');
-
+	var passwordToggle = document.getElementById('rsPasswordToggle');
+	var pollHelpEl = document.getElementById('rsPollHelp');
+	var refreshInfoBtn = document.getElementById('rainsoft-info-refresh');
+	
 	// Dealer / regen refs
 	var loadingEl = document.getElementById('rainsoft-info-loading');
 	var emptyEl = document.getElementById('rainsoft-info-empty');
@@ -141,9 +187,31 @@ homebridge.addEventListener('ready', async () => {
 	var lastRegenEl = document.getElementById('rainsoft-last-regen');
 	var asOfEl = document.getElementById('rainsoft-as-of');
 
-	// ----- Config wiring (like Cync) -----
+	// ----- Config wiring -----
 	var pluginConfig = await homebridge.getPluginConfig();
 	var cfg = pluginConfig[0] || {};
+	
+	if (passwordToggle && passwordInput) {
+		passwordToggle.addEventListener('click', function () {
+			var isPassword = passwordInput.type === 'password';
+			passwordInput.type = isPassword ? 'text' : 'password';
+			passwordToggle.textContent = isPassword ? 'Hide' : 'Show';
+		});
+	}
+	function setStatus(text, type) {
+		if (!statusEl) return;
+		statusEl.textContent = text || '';
+		statusEl.className = 'text-muted';
+	
+		// Optional: color hint based on state
+		if (type === 'ok') {
+			statusEl.classList.add('text-success');
+		} else if (type === 'warn') {
+			statusEl.classList.add('text-warning');
+		} else if (type === 'error') {
+			statusEl.classList.add('text-danger');
+		}
+	}
 
 	function setLockedState(locked) {
 		if (emailInput) {
@@ -153,10 +221,41 @@ homebridge.addEventListener('ready', async () => {
 		if (passwordInput) {
 			passwordInput.disabled = locked;
 			passwordInput.readOnly = locked;
+	
+			// When locking, force the field back to password type
+			if (locked) {
+				passwordInput.type = 'password';
+			}
+		}
+	
+		// Show/Hide + disable the toggle button in sync
+		if (passwordToggle) {
+			if (locked) {
+				passwordToggle.disabled = true;
+				passwordToggle.style.visibility = 'hidden';
+				passwordToggle.textContent = 'Show'; // reset label
+			} else {
+				passwordToggle.disabled = false;
+				passwordToggle.style.visibility = 'visible';
+			}
 		}
 		// poll interval and name remain editable
 	}
-
+	function updatePollHelp(seconds) {
+		if (!pollHelpEl) return;
+	
+		var label;
+		if (seconds <= 300) {
+			label = 'High update frequency; more API calls.';
+		} else if (seconds <= 3600) {
+			label = 'Balanced updates; recommended for most users.';
+		} else {
+			label = 'Low update frequency; fewer API calls, slower updates.';
+		}
+	
+		pollHelpEl.textContent =
+			'Currently set to ' + Math.round(seconds / 60) + ' minutes. ' + label;
+	}
 	async function updateConfig(partial) {
 		cfg = Object.assign({}, cfg, partial);
 		pluginConfig = [cfg];
@@ -183,6 +282,7 @@ homebridge.addEventListener('ready', async () => {
 		} else {
 			pollSelect.value = '1800';
 		}
+		updatePollHelp(currentPoll);
 	}
 
 	// Listen for changes and write back to config
@@ -197,7 +297,10 @@ homebridge.addEventListener('ready', async () => {
 
 	if (emailInput) {
 		emailInput.addEventListener('change', function () {
-			updateConfig({ email: emailInput.value.trim() })
+			var value = emailInput.value.trim();
+			var normalized = value.toLowerCase();
+			emailInput.value = normalized;
+			updateConfig({ email: normalized })
 				.catch(function (e) {
 					console.error('[rainsoft-ui] failed to update email:', e);
 				});
@@ -223,6 +326,7 @@ homebridge.addEventListener('ready', async () => {
 				.catch(function (e) {
 					console.error('[rainsoft-ui] failed to update pollSeconds:', e);
 				});
+			updatePollHelp(seconds);	
 		});
 	}
 
@@ -242,9 +346,9 @@ homebridge.addEventListener('ready', async () => {
 			if (statusEl) {
 				if (hasIdentity) {
 					var label = cfg.email || 'RainSoft account';
-					statusEl.textContent = 'Signed in. Using ' + label + '.';
+					setStatus('Signed in as ' + label + '.', 'ok');
 				} else {
-					statusEl.textContent = 'Not signed in yet. Enter credentials and click Save in Homebridge.';
+					setStatus('Not signed in. Enter credentials and click Save in Homebridge.', 'warn');
 				}
 			}
 		} catch (err) {
@@ -254,7 +358,7 @@ homebridge.addEventListener('ready', async () => {
 				signOutBtn.style.display = 'none';
 			}
 			if (statusEl) {
-				statusEl.textContent = 'Unable to determine sign-in state.';
+				setStatus('Unable to determine sign-in state.', 'error');
 			}
 		}
 	}
@@ -290,47 +394,104 @@ homebridge.addEventListener('ready', async () => {
 	refreshAuthState();
 
 	// ----- Dealer / regen info wiring -----
-	var info;
-	try {
-		info = await homebridge.request('/rainsoft/info', {});
-	} catch (err) {
-		console.error('[rainsoft-remind][ui] /rainsoft/info error:', err);
-		if (loadingEl) {
-			loadingEl.textContent =
-				'Failed to load dealer/regeneration information.';
+	async function loadDealerInfo() {
+		var info;
+		try {
+			info = await homebridge.request('/rainsoft/info', {});
+		} catch (err) {
+			console.error('[rainsoft-remind][ui] /rainsoft/info error:', err);
+			if (loadingEl) {
+				loadingEl.textContent =
+					'Failed to load dealer/regeneration information.';
+			}
+			homebridge.toast.error(
+				'Failed to load dealer/regeneration information.',
+				'RainSoft Remind'
+			);
+			return;
 		}
-		homebridge.toast.error(
-			'Failed to load dealer/regeneration information.',
-			'RainSoft Remind'
-		);
-		return;
+	
+		if (loadingEl) {
+			loadingEl.style.display = 'none';
+		}
+	
+		if (!info) {
+			if (emptyEl) emptyEl.style.display = '';
+			return;
+		}
+	
+		var hasDealer =
+			info.dealerName || info.dealerPhone || info.dealerEmail;
+		var hasRegen = info.lastRegenDate || info.asOf;
+	
+		if (!hasDealer && !hasRegen) {
+			if (emptyEl) emptyEl.style.display = '';
+			return;
+		}
+	
+		if (dealerNameEl) {
+			dealerNameEl.textContent = info.dealerName || '—';
+		}
+	
+		if (dealerPhoneEl) {
+			if (info.dealerPhone) {
+				var telHref = buildTelHref(info.dealerPhone);
+				if (telHref) {
+					dealerPhoneEl.innerHTML =
+						'<a href="' + telHref + '">' + info.dealerPhone + '</a>';
+				} else {
+					dealerPhoneEl.textContent = info.dealerPhone;
+				}
+			} else {
+				dealerPhoneEl.textContent = '—';
+			}
+		}
+	
+		if (dealerEmailEl) {
+			if (info.dealerEmail) {
+				var mailHref = buildMailtoHref(info.dealerEmail);
+				if (mailHref) {
+					var safeEmail = String(info.dealerEmail).trim();
+					dealerEmailEl.innerHTML =
+						'<a href="' + mailHref + '">' + safeEmail + '</a>';
+				} else {
+					dealerEmailEl.textContent = info.dealerEmail;
+				}
+			} else {
+				dealerEmailEl.textContent = '—';
+			}
+		}
+	
+		if (lastRegenEl) {
+			var last = formatDate(info.lastRegenDate);
+			lastRegenEl.innerHTML = last === '—'
+				? '—'
+				: '<small>' + last + '</small>';
+		}
+	
+		if (asOfEl) {
+			var asOf = formatDate(info.asOf);
+			asOfEl.innerHTML = asOf === '—'
+				? '—'
+				: '<small>' + asOf + '</small>';
+		}
+	
+		if (contentEl) contentEl.style.display = '';
+		if (emptyEl) emptyEl.style.display = 'none';
 	}
-
-	if (loadingEl) {
-		loadingEl.style.display = 'none';
+	
+	if (refreshInfoBtn) {
+		refreshInfoBtn.addEventListener('click', function () {
+			homebridge.toast.info(
+				'Refreshing dealer/regeneration details…',
+				'RainSoft Remind'
+			);
+			loadDealerInfo();
+		});
 	}
-
-	if (!info) {
-		if (emptyEl) emptyEl.style.display = '';
-		return;
-	}
-
-	var hasDealer =
-		info.dealerName || info.dealerPhone || info.dealerEmail;
-	var hasRegen = info.lastRegenDate || info.asOf;
-
-	if (!hasDealer && !hasRegen) {
-		if (emptyEl) emptyEl.style.display = '';
-		return;
-	}
-
-	if (dealerNameEl) dealerNameEl.textContent = info.dealerName || '—';
-	if (dealerPhoneEl) dealerPhoneEl.textContent = info.dealerPhone || '—';
-	if (dealerEmailEl) dealerEmailEl.textContent = info.dealerEmail || '—';
-
-	if (lastRegenEl) lastRegenEl.textContent = formatDate(info.lastRegenDate);
-	if (asOfEl) asOfEl.textContent = formatDate(info.asOf);
-
-	if (contentEl) contentEl.style.display = '';
+	
+	// Initial load
+	await loadDealerInfo();
 });
+
 </script>

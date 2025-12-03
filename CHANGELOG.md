@@ -1,3 +1,46 @@
+## v0.4.8 - Spit and polish, silencio!
+
+**Release Date:** 2025-12-03
+
+### **Maintenance + UI/Config Improvements**
+
+* Converted `homebridge-ui/server.js` from ESM to CommonJS to eliminate Node’s `[MODULE_TYPELESS_PACKAGE_JSON]` warnings when loading the Homebridge UI server.
+* Reduced noisy HTTP 400 “retry after re-login” messages to **debug** level to keep Homebridge logs clean.
+
+### **Config UI Polish**
+
+* Cleaned up the **plugin configuration sidebar** and description text for clarity and accuracy.
+* Updated headings and instructions to better surface:
+
+  * How identity is stored,
+  * How/when the plugin auto-logs in,
+  * What is written to disk, and
+  * How to sign out/reset credentials.
+* Improved alignment and grouping of sections in `index.html` to match Homebridge Verified UX conventions.
+
+### **Identity & Dealer Info Handling**
+
+* Improved load + fallback behavior for `identity.json` and `status.json`:
+
+  * UI now returns `null` for missing fields (instead of undefined or empty strings).
+  * Dealer contact details and regen metadata are normalized before being returned to the UI.
+* Updated **Sign Out** behavior (`/rainsoft/signout`):
+
+  * Blank objects are saved and normalized via `identityStore`
+  * Ensures config UI immediately reflects a logged-out state
+  * Improved error logging during write failures
+
+### **Auth-State Endpoint Enhancements**
+
+* `/rainsoft/auth-state` now accurately reports login state based on stored identity fields (`deviceId`, `model`, `serial`).
+* Ensures config UI buttons (e.g., Sign Out / Status panel) reflect the correct state after restarts.
+
+### **General Stability Improvements**
+
+* Removed leftover ESM imports + `createRequire()` to avoid mixed-module runtime issues.
+* Improved UI server initialization flow (`ready()` called after all handlers registered).
+* Minor internal cleanup to avoid unnecessary console output during Homebridge UI startup.
+
 ## v0.4.7 – Custom UI & Dealer Details
 
 **Release Date:** 2025-12-02
