@@ -8,18 +8,26 @@ class RainsoftRemindUiServer extends HomebridgePluginUiServer {
 	constructor() {
 		super();
 
-		// Dealer + regen info
+		// Dealer + regen info (with optional force-refresh via platform IPC)
 		this.onRequest('/rainsoft/info', async () => {
 			const storagePath = this.homebridgeStoragePath;
-
+		
+			// Ask the main platform to perform a forced refresh from RainSoft cloud.
+			// If this fails for any reason, we fall back to whatever is currently on disk.
+			try {
+				await this.homebridge.request('/rainsoft/force-refresh', {});
+			} catch (e) {
+				this.log?.warn?.('[rainsoft-remind][ui] /rainsoft/info force-refresh failed:', e);
+			}
+		
 			const identity = identityStore.load(storagePath) || {};
 			const status = identityStore.loadStatus(storagePath) || {};
-
+		
 			return {
 				dealerName: identity.dealerName ?? null,
 				dealerPhone: identity.dealerPhone ?? null,
 				dealerEmail: identity.dealerEmail ?? null,
-
+		
 				lastRegenDate: status.lastRegenDate ?? null,
 				asOf: status.asOf ?? null,
 			};

@@ -63,7 +63,7 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 		this.pollSeconds = Number((this.config as any)?.pollSeconds ?? 300);
 
 		this.api.on('didFinishLaunching', async () => {
-
+		
 			if (!this.isConfigured()) {
 				this.log.warn(
 					'[rainsoft-remind] Plugin not configured. ' +
@@ -80,7 +80,38 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 				this.log.error('[rainsoft-remind] Startup error:', String(err));
 			}
 		});
-
+		
+		// IPC endpoint for UI "force refresh" (used by Dealer Details refresh button)
+		const apiWithOnRequest = this.api as unknown as {
+			onRequest?: (path: string, handler: (body: unknown, callback: (response: unknown) => void) => void) => void;
+		};
+		
+		apiWithOnRequest.onRequest?.('/rainsoft/force-refresh', async (_body: unknown, callback: (response: unknown) => void) => {
+			try {
+				// One-shot forced refresh from RainSoft cloud
+				await this.refreshFromCloud(true);
+		
+				const storagePath = this.api.user.storagePath();
+				const identity = identityStore.load(storagePath) || {};
+				const status = identityStore.loadStatus(storagePath) || {};
+		
+				callback({
+					ok: true,
+					dealerName: identity.dealerName ?? null,
+					dealerPhone: identity.dealerPhone ?? null,
+					dealerEmail: identity.dealerEmail ?? null,
+					lastRegenDate: status.lastRegenDate ?? null,
+					asOf: status.asOf ?? null,
+				});
+			} catch (err) {
+				this.log.error('[rainsoft-remind] force-refresh IPC failed:', String(err));
+				callback({
+					ok: false,
+					error: String(err),
+				});
+			}
+		});
+		
 		this.api.on('shutdown', () => this.stopPolling());
 	}
 
@@ -185,29 +216,37 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 		if (this.pollTimer) clearTimeout(this.pollTimer);
 		this.pollTimer = null;
 	}
-	
-	// Single poll tick
-	private async pollOnce() {
+	// --- core refresh: shared by poll loop and UI "force refresh"
+	private async refreshFromCloud(force: boolean): Promise<void> {
 		const wrapped = this.activeAccessory;
-		if (!wrapped) return;
-
+		if (!wrapped) {
+			return;
+		}
+	
 		const ctx = wrapped.accessory.context?.rainsoft || this.buildContextFromConfig();
 		const storagePath = this.api.user.storagePath();
 		const store = identityStore.load(storagePath);
+	
+		// Ensure we have a deviceId
 		ctx.deviceId = ctx.deviceId ?? store.deviceId;
-
 		if (!ctx.deviceId) {
-			this.log.warn('[rainsoft-remind] pollOnce: no deviceId yet; skipping');
+			this.log.warn('[rainsoft-remind] refreshFromCloud: no deviceId yet; skipping');
 			return;
 		}
-
+	
+		// For a forced refresh, make sure the context allows forceUpdate
+		if (force) {
+			ctx.forceUpdate = true;
+		}
+	
 		// Fetch normalized live snapshot (salt %, capacity %, status)
-		const snap = await this.apiClient.fetchDeviceSnapshot(ctx, { force: false });
+		const snap = await this.apiClient.fetchDeviceSnapshot(ctx, { force });
 		if (!snap) {
-			this.log.warn('[rainsoft-remind] pollOnce: no snapshot returned');
+			this.log.warn('[rainsoft-remind] refreshFromCloud: no snapshot returned');
 			return;
 		}
-
+	
+		// Persist identity details
 		identityStore.merge(storagePath, {
 			name: snap.displayName ?? undefined,
 			model: snap.prettyModel ?? undefined,
@@ -217,15 +256,23 @@ export class RainsoftRemindPlatform implements DynamicPlatformPlugin {
 			dealerPhone: snap.dealerPhone ?? undefined,
 			dealerEmail: snap.dealerEmail ?? undefined,
 		});
-		
+	
+		// Persist dynamic status
 		identityStore.mergeStatus(storagePath, {
 			lastRegenDate: snap.lastRegenDate || null,
 			nextRegenTime: snap.regenTime || null,
 			asOf: snap.asOf || new Date().toISOString(),
 		});
-		
+	
+		// Update context + accessory state
+		wrapped.accessory.context.rainsoft = ctx;
 		wrapped.accessory.context.lastRainsoftStatus = snap;
 		await wrapped.updateFromSnapshot(snap);
+	}
+
+	// Single poll tick
+	private async pollOnce() {
+		await this.refreshFromCloud(false);
 	}
 	
 	// ### 🧩 Config → context: normalize user config into what the API expects

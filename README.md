@@ -7,6 +7,7 @@
   <a href="https://github.com/dash16/homebridge-rainsoft-remind/stargazers"><img src="https://img.shields.io/github/stars/dash16/homebridge-rainsoft-remind.svg?style=flat&color=ffcc00" alt="GitHub stars"></a>
   <a href="https://github.com/dash16/homebridge-rainsoft-remind/issues"><img src="https://img.shields.io/github/issues/dash16/homebridge-rainsoft-remind.svg?color=yellow" alt="GitHub issues"></a>
   <a href="https://github.com/dash16/homebridge-rainsoft-remind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/homebridge/homebridge/wiki/Verified-Plugins"><img src="https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=flat" alt="verified by homebridge"></a>
 </p>
 
 <h1 align="center">homebridge-rainsoft-remind</h1>
