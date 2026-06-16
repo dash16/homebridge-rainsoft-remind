@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./homebridge-ui/public/icon.png" width="180" height="180" alt="homebridge-rainsoft-remind icon">
+  <img src="./homebridge-ui/public/icon.png" width="256" alt="homebridge-rainsoft-remind icon">
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 ## Requirements
 
 - **Node.js:** v20, v22, or v24 (current LTS releases)
-- **Homebridge:** v1.8.0 or newer (including 2.0 beta)
+- **Homebridge:** v1.8.0 or newer (including 2.0)
 - **Platform type:** Dynamic platform plugin (single accessory representing your RainSoft system)
 
 Tested on Node.js v20, v22, and v24 with Homebridge v1.8+.
